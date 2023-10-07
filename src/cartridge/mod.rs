@@ -1,6 +1,6 @@
 use std::fmt::format;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::Path;
 use crate::memory::Memory;
 use crate::Result;
@@ -42,6 +42,12 @@ impl Ram {
         let mut mem = Vec::new();
         rom_file.read_to_end(&mut mem).map_err(|err| format!("{:?}", err))?;
         Ok(Ram { path, mem })
+    }
+
+    pub fn dump(&self) -> Result<()>{
+        let mut rom_file = File::create(&self.path).map_err(|err| format!("{:?}", err))?;
+        rom_file.write_all(&self.mem).map_err(|err| format!("{:?}", err))?;
+        Ok(())
     }
 }
 

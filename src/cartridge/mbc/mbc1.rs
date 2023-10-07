@@ -93,8 +93,12 @@ impl Memory for MBC1 {
         match offset {
             0x0000..=0x1FFF => {
                 // RAM 启用/禁用标志
-                self.ram_enable = (value & 0x0A) == 0x0A;
-                // todo ram dump ?
+                let after = (value & 0x0A) == 0x0A;
+                if !after && !(after && self.ram_enable) {
+                    // ram access: enable -> disable
+                    self.ram.dump();
+                }
+                self.ram_enable = after;
             }
             0x2000..=0x3FFF => {
                 // Bank Number 第 0-4 位
