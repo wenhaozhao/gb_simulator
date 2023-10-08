@@ -132,8 +132,8 @@ pub struct Ram {
 }
 
 impl Ram {
-    pub fn new<F>(path: String, size: u16, content_supplier: F) -> Result<Self>
-        where F: FnOnce(u16) -> Vec<u8>
+    pub fn new<F>(path: String, size: usize, content_supplier: F) -> Result<Self>
+        where F: FnOnce(usize) -> Vec<u8>
     {
         let mut ram_file = match File::open(&path) {
             Ok(file) => file,
@@ -141,7 +141,7 @@ impl Ram {
                 let mut file = File::create(&path).map_err(|err| format!("{:?}", err))?;
                 let empty_content = content_supplier(size);
                 let _ = file.write_all(&empty_content).map_err(|err| format!("{:?}", err))?;
-                File::open(&path).map_err(|err| format!("{:?}", err))?;
+                File::open(&path).map_err(|err| format!("{:?}", err))?
             }
         };
         let mut mem = Vec::new();
@@ -235,11 +235,10 @@ pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<
         CART_TYPE_MBC2 | CART_TYPE_MBC2_BATTERY => MBC2::power_up(rom, ram_path.clone()),
         CART_TYPE_MBC3_TIMER_BATTERY | CART_TYPE_MBC3_TIMER_RAM_BATTERY_2 | CART_TYPE_MBC3 | CART_TYPE_MBC3_RAM_2 | CART_TYPE_MBC3_RAM_BATTERY_2 => MBC3::power_up(rom, ram_path.clone(), rtc_path.clone()),
         CART_TYPE_MBC5 | CART_TYPE_MBC5_RAM | CART_TYPE_MBC5_RAM_BATTERY | CART_TYPE_MBC5_RUMBLE | CART_TYPE_MBC5_RUMBLE_RAM | CART_TYPE_MBC5_RUMBLE_RAM_BATTERY => MBC5::power_up(rom, ram_path.clone()),
-        _ => {}
+        _ => Err(format!("Unsupported cartridge type: {}", cart_type))
     };
     cart
 }
-
 
 fn check_nintendo_logo(rom: &Rom) -> Result<()> {
     let logo = rom.gets(HEADER_NINTENDO_LOGO_BASE, HEADER_NINTENDO_LOGO_LEN);
@@ -289,7 +288,7 @@ fn rom_title_string(title_bytes: &Vec<u8>) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use crate::cartridge::{check_header, check_nintendo_logo, Rom, rom_title, rom_title_string};
+    use crate::cartridge::{check_header, check_nintendo_logo, power_up, Rom, rom_title, rom_title_string};
 
     #[test]
     fn test_check_nintendo_logo() {
@@ -309,6 +308,17 @@ mod tests {
         let title_bytes = rom_title(&rom);
         println!(" rom title_bytes=>{:?}", title_bytes);
         let title_string = rom_title_string(&title_bytes).unwrap();
+        println!(" rom title_string => {}", title_string);
+        assert_eq!(title_string, String::from("BOXES"));
+    }
+
+    #[test]
+    fn test_power_up() {
+        let rom_path = String::from("resources/cartridge/boxes.gb");
+        let ram_path = String::from("target/save/ram");
+        let rtc_path = String::from("target/save/rtc");
+        let cart = power_up(rom_path, ram_path, rtc_path).unwrap();
+        let title_string = cart.title_string().unwrap();
         println!(" rom title_string => {}", title_string);
         assert_eq!(title_string, String::from("BOXES"));
     }

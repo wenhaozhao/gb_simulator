@@ -31,7 +31,7 @@ pub struct RTC {
 
 impl RTC {
     fn new(path: String) -> Result<Self> {
-        let ram = Ram::new(path.clone(), 8, |len| {
+        let ram = Ram::new(path.clone(), 8usize, |_| {
             let t0 = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
             let bytes = t0.to_be_bytes().to_vec();
             bytes
@@ -91,13 +91,13 @@ pub struct MBC3 {
 
 impl MBC3 {
     pub fn power_up(rom: Rom, ram_path: String, rtc_path: String) -> Result<Box<dyn Cartridge>> {
-        Ok(Box::new(MBC3::new(rom, ram_path, rtc_path)))
+        Ok(Box::new(MBC3::new(rom, ram_path, rtc_path)?))
     }
 
     fn new(rom: Rom, ram_path: String, rtc_path: String) -> Result<Self> {
         Ok(MBC3 {
             rom,
-            ram: Ram::new(ram_path, RAM_BANK_LEN * RAM_BANK_COUNT, |len| vec![0u8; len as usize])?,
+            ram: Ram::new(ram_path, RAM_BANK_LEN as usize * RAM_BANK_COUNT as usize, |len| vec![0u8; len])?,
             rtc: RTC::new(rtc_path)?,
             rom_bank: 0x01,
             ram_bank: 0x00,

@@ -16,13 +16,13 @@ pub struct MBC2 {
 
 impl MBC2 {
     pub fn power_up(rom: Rom, ram_path: String) -> Result<Box<dyn Cartridge>> {
-        Ok(Box::new(MBC2::new(rom, ram_path)))
+        Ok(Box::new(MBC2::new(rom, ram_path)?))
     }
 
     fn new(rom: Rom, ram_path: String) -> Result<Self> {
         Ok(MBC2 {
             rom,
-            ram: Ram::new(ram_path, RAM_BANK_LEN, |len| vec![0u8; len as usize])?,
+            ram: Ram::new(ram_path, RAM_BANK_LEN as usize, |len| vec![0u8; len])?,
             bank: 0x01,
             ram_enable: false,
         })

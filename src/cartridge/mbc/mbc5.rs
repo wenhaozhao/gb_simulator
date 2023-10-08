@@ -5,7 +5,6 @@ use crate::cartridge::mbc::{MBC, RAM_BANK_LEN, RAM_X_BASE, RAM_X_END, ROM_0_BASE
 use crate::memory::Memory;
 use crate::Result;
 
-
 pub const CART_TYPE_MBC5: u8 = 0x19;
 pub const CART_TYPE_MBC5_RAM: u8 = 0x1A;
 pub const CART_TYPE_MBC5_RAM_BATTERY: u8 = 0x1B;
@@ -28,13 +27,13 @@ pub struct MBC5 {
 
 impl MBC5 {
     pub fn power_up(rom: Rom, ram_path: String) -> Result<Box<dyn Cartridge>> {
-        Ok(Box::new(MBC5::new(rom, ram_path)))
+        Ok(Box::new(MBC5::new(rom, ram_path)?))
     }
 
     pub fn new(rom: Rom, ram_path: String) -> Result<Self> {
         Ok(MBC5 {
             rom,
-            ram: Ram::new(ram_path, RAM_BANK_LEN * RAM_BANK_COUNT, |len| vec![0u8; len as usize])?,
+            ram: Ram::new(ram_path, RAM_BANK_LEN as usize * RAM_BANK_COUNT as usize, |len| vec![0u8; len])?,
             rom_bank: 0x0001,
             ram_bank: 0x0000,
             ram_enable: false,
