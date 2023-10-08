@@ -1,63 +1,39 @@
+use std::str::FromStr;
+
 use crate::cartridge::{Ram, Rom};
 use crate::cartridge::mbc::{MBC, RAM_BANK_SIZE, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_SIZE, ROM_X_BASE, ROM_X_END};
 use crate::memory::Memory;
 use crate::Result;
 
-enum BankMode {
-    ROM,
-    RAM,
-}
-
-pub struct MBC1 {
+pub struct MBC5 {
     rom: Rom,
     ram: Ram,
-    ///
-    /// - BankMode   RAMBank   ROMBank
-    /// - 1 bit      2 bit     5 bit
-    ///
-    bank: u8,
+    rom_bank: u16,
+    ram_bank: u16,
     ram_enable: bool,
 }
 
-impl MBC1 {
+impl MBC5 {
     pub fn new(rom_path: String, ram_path: String) -> Result<Self> {
-        Ok(MBC1 {
+        Ok(MBC5 {
             rom: Rom::new(rom_path)?,
             ram: Ram::new(ram_path)?,
-            bank: 0x01,
+            rom_bank: 0x0001,
+            ram_bank: 0x0000,
             ram_enable: false,
         })
     }
 
-    fn bank_mode(&self) -> BankMode {
-        let bank = self.bank;
-        match bank & 0b1000_0000 {
-            0b1000_0000 => {
-                BankMode::RAM
-            }
-            _ => BankMode::ROM,
-        }
-    }
-
     fn rom_bank_index(&self) -> u16 {
-        let index = match self.bank_mode() {
-            BankMode::ROM => self.bank & 0b0_11_11111,
-            BankMode::RAM => self.bank & 0b0_00_11111,
-        };
-        index as u16
+        self.rom_bank & 0x01FF
     }
 
     fn ram_bank_index(&self) -> u16 {
-        let index = match self.bank_mode() {
-            BankMode::ROM => 0x00,
-            BankMode::RAM => self.bank & 0b0_11_00000 >> 5,
-        };
-        index as u16
+        self.ram_bank & 0x000F
     }
 }
 
-
-impl Memory for MBC1 {
+impl Memory for MBC5 {
     fn read(&self, addr: u16) -> u8 {
         match addr {
             ROM_0_BASE..=ROM_0_END => {
@@ -68,7 +44,10 @@ impl Memory for MBC1 {
                 self.rom.read(addr)
             }
             RAM_X_BASE..=RAM_X_END => {
+                // ram or rtc
                 if self.ram_enable {
+                    let index = self.ram_bank_index();
+                    // ram
                     let addr = self.ram_bank_index() * RAM_BANK_SIZE + addr - RAM_X_BASE;
                     self.ram.read(addr)
                 } else {
@@ -82,7 +61,7 @@ impl Memory for MBC1 {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             0x0000..=0x1FFF => {
-                // RAM 启用/禁用标志
+                // RAM/RTC 启用/禁用标志
                 let after = (value & 0x0A) == 0x0A;
                 if !after && !(after && self.ram_enable) {
                     // ram access: enable -> disable
@@ -90,24 +69,20 @@ impl Memory for MBC1 {
                 }
                 self.ram_enable = after;
             }
-            0x2000..=0x3FFF => {
-                // Bank Number 第 0-4 位
-                let value = value & 0b0_00_11111;
-                let value = match value {
-                    0x00 | 0x20 | 0x40 | 0x60 => value | 0x01,
-                    _ => value
-                };
-                self.bank = (self.bank & 0b1_11_00000) | value;
+            0x2000..=0x2FFF => {
+                // Rom Bank Number 0-7
+                let value = value as u16;
+                self.rom_bank = (self.rom_bank & 0xFE00) | value;
+            }
+            0x3000..=0x3FFF => {
+                // Rom Bank Number 8
+                let value = ((value & 0x01) as u16) << 8;
+                self.rom_bank = (self.rom_bank & 0xFE00) | value;
             }
             0x4000..=0x5FFF => {
-                // Bank Number 第 5-6 位
-                let value = (value & 0b0000_0011) << 5;
-                self.bank = (self.bank & 0b1_00_11111) | value;
-            }
-            0x6000..=0x7FFF => {
-                // Bank 模式选择
-                let value = (value & 0b0000_0001) << 7;
-                self.bank = self.bank | value;
+                // Ram/RTC Bank Number
+                let value = (value & 0x0F) as u16;
+                self.ram_bank = (self.ram_bank & 0xFFF0) | value;
             }
             RAM_X_BASE..=RAM_X_END => {
                 if self.ram_enable {
@@ -120,7 +95,7 @@ impl Memory for MBC1 {
     }
 }
 
-impl MBC for MBC1 {}
+impl MBC for MBC5 {}
 
 #[cfg(test)]
 mod tests {

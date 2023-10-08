@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::time::SystemTime;
 
 use crate::cartridge::{Ram, Rom};
-use crate::cartridge::mbc::MBC;
+use crate::cartridge::mbc::{MBC, RAM_BANK_SIZE, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_SIZE, ROM_X_BASE, ROM_X_END};
 use crate::memory::Memory;
 use crate::Result;
 
@@ -64,7 +64,7 @@ impl Memory for RTC {
             0x0A => elapse / 3600 % 24, // rtc hours
             0x0B => (elapse / 3600 / 24), // rtc dl days
             0x0C => (elapse / 3600 / 24) & 0x1FF >> 8,
-            _ => panic!("read rtc reg {} denied", reg)
+            _ => panic!("read rtc reg {} denied", reg),
         };
         (v & 0xFF) as u8
     }
@@ -106,25 +106,6 @@ impl MBC3 {
     }
 }
 
-/// rom 16KB
-const ROM_BANK_SIZE: u16 = 0x4000;
-/// rom_0 0x0000 - 0x3FFF
-const ROM_0_BASE: u16 = 0x0000;
-/// rom_0 0x0000 - 0x3FFF
-const ROM_0_END: u16 = ROM_0_BASE + ROM_BANK_SIZE - 1;
-/// rom_01-7F 0x4000 - 0x7FFF
-const ROM_X_BASE: u16 = 0x4000;
-/// rom_01-7F 0x4000 - 0x7FFF
-const ROM_X_END: u16 = ROM_X_BASE + ROM_BANK_SIZE - 1;
-
-/// ram 8KB
-const RAM_BANK_SIZE: u16 = 0x2000;
-/// ram_00-03/rtc_08-0C 0xA000 - 0xBFFF
-const RAM_X_BASE: u16 = 0xA000;
-/// ram_00-03/rtc_08-0C 0xA000 - 0xBFFF
-const RAM_X_END: u16 = RAM_X_BASE + RAM_BANK_SIZE - 1;
-
-
 impl Memory for MBC3 {
     fn read(&self, addr: u16) -> u8 {
         match addr {
@@ -155,9 +136,7 @@ impl Memory for MBC3 {
                     0x00
                 }
             }
-            _ => {
-                panic!("read addr {} denied", addr)
-            }
+            _ => panic!("read addr {} denied", addr),
         }
     }
 
@@ -189,7 +168,7 @@ impl Memory for MBC3 {
             0x6000..=0x7FFF => {
                 // 锁存时钟数据
                 if value & 0x01 == 0x01 {
-                    let _ =  self.rtc.latched();
+                    let _ = self.rtc.latched();
                 }
             }
             RAM_X_BASE..=RAM_X_END => {
@@ -210,9 +189,7 @@ impl Memory for MBC3 {
                     }
                 }
             }
-            _ => {
-                panic!("write addr {} denied", addr)
-            }
+            _ => panic!("write addr {} denied", addr),
         }
     }
 }
