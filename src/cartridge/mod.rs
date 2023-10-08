@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::fs::File;
 use std::io::{Read, Write};
 
@@ -50,12 +51,21 @@ const HEADER_TITLE_GB_LEN: u16 = HEADER_TITLE_END_GB - HEADER_TITLE_BASE + 1;
 const HEADER_CGB_FLAG: u16 = 0x0143;
 const CGB_FLAG_COMPATIBLE: u8 = 0x80;
 const CGB_FLAG_ONLY: u8 = 0xC0;
+
+#[derive(Debug)]
+pub enum CGBFlag {
+    None,
+    Compatible,
+    CGBOnly,
+}
+
 /// 制造商编码 0x013F - 0x0142
 /// enable on cgb
 const HEADER_MANUFACTURER_CODE_BASE: u16 = 0x013F;
 /// 制造商编码 0x013F - 0x0142
 /// enable on cgb
 const HEADER_MANUFACTURER_CODE_END: u16 = 0x0142;
+const HEADER_MANUFACTURER_CODE_LEN: u16 = HEADER_MANUFACTURER_CODE_END - HEADER_MANUFACTURER_CODE_BASE + 1;
 /// ColorGameBoy
 /// 标题 0x0134 - 0x013E
 const HEADER_TITLE_END_CGB: u16 = 0x013E;
@@ -69,6 +79,12 @@ const HEADER_NEW_LICENSEE_CODE_LEN: u16 = HEADER_NEW_LICENSEE_CODE_END - HEADER_
 
 /// SuperGameBoy(SGB) 标志 0x0146
 const HEADER_SGB_FLAG: u16 = 0x0146;
+
+#[derive(Debug)]
+pub enum SGBFlag {
+    None,
+    Ok,
+}
 
 /// 卡带(Cartridge)类型 0x0147
 const HEADER_CART_TYPE: u16 = 0x0147;
@@ -101,6 +117,7 @@ const HEADER_CHECKSUM: u16 = 0x014D;
 const HEADER_GLOBAL_CHECKSUM_BASE: u16 = 0x014E;
 /// 全局校验和 0x014E - 0x014F
 const HEADER_GLOBAL_CHECKSUM_END: u16 = 0x014F;
+const HEADER_GLOBAL_CHECKSUM_LEN: u16 = HEADER_GLOBAL_CHECKSUM_END - HEADER_GLOBAL_CHECKSUM_BASE + 1;
 
 
 pub struct Rom {
@@ -213,15 +230,218 @@ impl Memory for RomOnly {
 pub trait Cartridge: Memory {
     fn rom(&self) -> &Rom;
     fn ram(&self) -> Option<&Ram>;
+    #[inline]
+    fn header(&self) -> Vec<u8> {
+        self.rom().gets(HEADER_CHECK_BASE, HEADER_CHECK_LEN)
+    }
+    #[inline]
+    fn logo(&self) -> Vec<u8> {
+        self.rom().gets(HEADER_NINTENDO_LOGO_BASE, HEADER_NINTENDO_LOGO_LEN)
+    }
 
+    #[inline]
+    fn manufacturer_code(&self) -> Vec<u8> {
+        self.rom().gets(HEADER_MANUFACTURER_CODE_BASE, HEADER_MANUFACTURER_CODE_LEN)
+    }
+    fn manufacturer_code_text(&self) -> Result<String> {
+        String::from_utf8(self.manufacturer_code())
+            .map_err(|err| format!("Create manufacturer code string error, msg: {:?}", err))
+    }
+
+    #[inline]
+    fn cgb_flag(&self) -> CGBFlag {
+        let flag = self.rom().get(HEADER_CGB_FLAG);
+        match flag {
+            CGB_FLAG_COMPATIBLE => CGBFlag::Compatible,
+            CGB_FLAG_ONLY => CGBFlag::CGBOnly,
+            _ => CGBFlag::None,
+        }
+    }
+
+    #[inline]
+    fn title_len(&self) -> u16 {
+        let cgb_flag = self.cgb_flag();
+        match cgb_flag {
+            CGBFlag::Compatible | CGBFlag::CGBOnly => HEADER_TITLE_CGB_LEN,
+            _ => HEADER_TITLE_GB_LEN,
+        }
+    }
+
+    #[inline]
     fn title(&self) -> Vec<u8> {
-        rom_title(self.rom())
+        let title_len = self.title_len();
+        let title_bytes = self.rom().gets(HEADER_TITLE_BASE, title_len);
+        title_bytes
     }
 
-    fn title_string(&self) -> Result<String> {
-        let title = self.title();
-        rom_title_string(&title)
+    fn title_text(&self) -> Result<String> {
+        let title_bytes = self.title();
+        let title_text = String::from_utf8(
+            title_bytes.iter()
+                .filter(|b| **b > 0)
+                .map(|b| *b)
+                .collect::<Vec<u8>>()
+        )
+            .map_err(|err| format!("Create title string error, msg: {:?}", err))?;
+        Ok(title_text)
     }
+
+    fn licensee_code(&self) -> u16 {
+        let old = self.rom().get(HEADER_OLD_LICENSEE_CODE);
+        match old {
+            0x33 => {
+                let code_vec = self.rom().gets(HEADER_NEW_LICENSEE_CODE_BASE, HEADER_NEW_LICENSEE_CODE_LEN);
+                let mut code = [0u8; 2];
+                code.copy_from_slice(&code_vec);
+                let code = u16::from_be_bytes(code);
+                code
+            }
+            _ => old as u16
+        }
+    }
+
+    #[inline]
+    fn sgb_flag(&self) -> SGBFlag {
+        match self.rom().get(HEADER_SGB_FLAG) {
+            0x00 => SGBFlag::None,
+            0x03 => SGBFlag::Ok,
+            _ => SGBFlag::None
+        }
+    }
+
+    #[inline]
+    fn cart_type(&self) -> u8 {
+        self.rom().get(HEADER_CART_TYPE)
+    }
+
+    fn cart_type_text(&self) -> String {
+        String::from(match self.cart_type() {
+            0x00 => "ROM ONLY",
+            0x01 => "MBC1",
+            0x02 => "MBC1+RAM",
+            0x03 => "MBC1+RAM+BATTERY",
+            0x05 => "MBC2",
+            0x06 => "MBC2+BATTERY",
+            0x08 => "ROM+RAM",
+            0x09 => "ROM+RAM+BATTERY",
+            0x0b => "MMM01",
+            0x0c => "MMM01+RAM",
+            0x0d => "MMM01+RAM+BATTERY",
+            0x0f => "MBC3+TIMER+BATTERY",
+            0x10 => "MBC3+TIMER+RAM+BATTERY",
+            0x11 => "MBC3",
+            0x12 => "MBC3+RAM",
+            0x13 => "MBC3+RAM+BATTERY",
+            0x15 => "MBC4",
+            0x16 => "MBC4+RAM",
+            0x17 => "MBC4+RAM+BATTERY",
+            0x19 => "MBC5",
+            0x1a => "MBC5+RAM",
+            0x1b => "MBC5+RAM+BATTERY",
+            0x1c => "MBC5+RUMBLE",
+            0x1d => "MBC5+RUMBLE+RAM",
+            0x1e => "MBC5+RUMBLE+RAM+BATTERY",
+            0xfc => "POCKET CAMERA",
+            0xfd => "BANDAI TAMA5",
+            0xfe => "HuC3",
+            0x1f => "HuC1+RAM+BATTERY",
+            n => panic!("Unsupported cartridge type: 0x{:02x}", n),
+        })
+    }
+
+    // Specifies the ROM Size of the cartridge. Typically calculated as "32KB shl N".
+    fn rom_size(&self) -> usize {
+        match self.rom().get(HEADER_ROM_SIZE) {
+            0x00 => 0x4000 * 2,
+            0x01 => 0x4000 * 4,
+            0x02 => 0x4000 * 8,
+            0x03 => 0x4000 * 16,
+            0x04 => 0x4000 * 32,
+            0x05 => 0x4000 * 64,
+            0x06 => 0x4000 * 128,
+            0x07 => 0x4000 * 256,
+            0x08 => 0x4000 * 512,
+            0x52 => 0x4000 * 72,
+            0x53 => 0x4000 * 80,
+            0x54 => 0x4000 * 96,
+            n => panic!("Unsupported rom size: 0x{:02x}", n),
+        }
+    }
+
+    // Specifies the size of the external RAM in the cartridge (if any).
+    fn ram_size(&self) -> usize {
+        match self.rom().get(HEADER_RAM_SIZE) {
+            0x00 => 0,
+            0x01 => 0x400 * 2,
+            0x02 => 0x400 * 8,
+            0x03 => 0x400 * 32,
+            0x04 => 0x400 * 128,
+            0x05 => 0x400 * 64,
+            n => panic!("Unsupported ram size: 0x{:02x}", n),
+        }
+    }
+
+    /// 发售地代码
+    #[inline]
+    fn destination_code(&self) -> u8 {
+        self.rom().get(HEADER_DESTINATION_CODE)
+    }
+
+    /// 发售地代码
+    fn destination_code_text(&self) -> String {
+        String::from(match self.destination_code() {
+            0x00 => "Japan",
+            _ => "Overseas"
+        })
+    }
+
+    #[inline]
+    fn mask_rom_version_number(&self) -> u8 {
+        self.rom().get(HEADER_MASK_ROM_VERSION_NUM)
+    }
+
+    #[inline]
+    fn header_checksum(&self) -> u8 {
+        self.rom().get(HEADER_CHECKSUM)
+    }
+
+    fn global_checksum(&self) -> u16 {
+        let vec = self.rom().gets(HEADER_GLOBAL_CHECKSUM_BASE, HEADER_GLOBAL_CHECKSUM_LEN);
+        let mut checksum = [0u8; 2];
+        checksum.copy_from_slice(&vec);
+        u16::from_be_bytes(checksum)
+    }
+
+    fn info(&self) -> CartridgeInfo {
+        CartridgeInfo {
+            cgb_flag: self.cgb_flag(),
+            title: self.title_text().unwrap_or(String::from("Unknown")),
+            licensee_code: self.licensee_code(),
+            sgb_flag: self.sgb_flag(),
+            cart_type: self.cart_type_text(),
+            rom_size: self.rom_size(),
+            ram_size: self.ram_size(),
+            destination_code: self.destination_code_text(),
+            mask_rom_version_number: self.mask_rom_version_number(),
+            header_checksum: self.header_checksum(),
+            global_checksum: self.global_checksum(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CartridgeInfo {
+    cgb_flag: CGBFlag,
+    title: String,
+    licensee_code: u16,
+    sgb_flag: SGBFlag,
+    cart_type: String,
+    rom_size: usize,
+    ram_size: usize,
+    destination_code: String,
+    mask_rom_version_number: u8,
+    header_checksum: u8,
+    global_checksum: u16,
 }
 
 pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<Box<dyn Cartridge>> {
@@ -265,30 +485,20 @@ fn check_header(rom: &Rom) -> Result<()> {
     Ok(())
 }
 
-fn rom_title(rom: &Rom) -> Vec<u8> {
-    let cgb_flag = rom.get(HEADER_CGB_FLAG);
-    let title_len = match cgb_flag {
-        CGB_FLAG_COMPATIBLE | CGB_FLAG_ONLY => HEADER_TITLE_CGB_LEN,
-        _ => HEADER_TITLE_GB_LEN,
-    };
-    let title_bytes = rom.gets(HEADER_TITLE_BASE, title_len);
-    title_bytes
-}
-
-fn rom_title_string(title_bytes: &Vec<u8>) -> Result<String> {
-    let title_string = String::from_utf8(
+fn rom_title_text(title_bytes: &Vec<u8>) -> Result<String> {
+    let title_text = String::from_utf8(
         title_bytes.iter()
             .filter(|b| **b > 0)
             .map(|b| *b)
             .collect::<Vec<u8>>()
     )
         .map_err(|err| format!("Create title string error, msg: {:?}", err))?;
-    Ok(title_string)
+    Ok(title_text)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::cartridge::{check_header, check_nintendo_logo, power_up, Rom, rom_title, rom_title_string};
+    use crate::cartridge::{check_header, check_nintendo_logo, power_up, Rom};
 
     #[test]
     fn test_check_nintendo_logo() {
@@ -303,23 +513,16 @@ mod tests {
     }
 
     #[test]
-    fn test_get_rom_title() {
-        let rom = Rom::new(String::from("resources/cartridge/boxes.gb")).unwrap();
-        let title_bytes = rom_title(&rom);
-        println!(" rom title_bytes=>{:?}", title_bytes);
-        let title_string = rom_title_string(&title_bytes).unwrap();
-        println!(" rom title_string => {}", title_string);
-        assert_eq!(title_string, String::from("BOXES"));
-    }
-
-    #[test]
     fn test_power_up() {
         let rom_path = String::from("resources/cartridge/boxes.gb");
         let ram_path = String::from("target/_ram");
         let rtc_path = String::from("target/_rtc");
         let cart = power_up(rom_path, ram_path, rtc_path).unwrap();
-        let title_string = cart.title_string().unwrap();
-        println!(" rom title_string => {}", title_string);
-        assert_eq!(title_string, String::from("BOXES"));
+        let title_text = cart.title_text().unwrap();
+        println!(" rom title_text => {}", title_text);
+        assert_eq!(title_text, String::from("BOXES"));
+        println!(" rom manufacturer_code => {:02X?}", cart.manufacturer_code());
+        let info = cart.info();
+        println!("{:?}", info);
     }
 }

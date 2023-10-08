@@ -1,6 +1,3 @@
-
-
-
 pub const CART_TYPE_ROM_RAM_1: u8 = 0x08;
 pub const CART_TYPE_ROM_RAM_BATTERY_1: u8 = 0x09;
 pub const CART_TYPE_MMM01: u8 = 0x0B;
