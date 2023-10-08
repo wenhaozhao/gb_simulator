@@ -6,7 +6,7 @@ use crate::cartridge::mbc::mbc1::{CART_TYPE_MBC1, CART_TYPE_MBC1_RAM, CART_TYPE_
 use crate::cartridge::mbc::mbc2::{CART_TYPE_MBC2, CART_TYPE_MBC2_BATTERY, MBC2};
 use crate::cartridge::mbc::mbc3::{CART_TYPE_MBC3, CART_TYPE_MBC3_RAM_2, CART_TYPE_MBC3_RAM_BATTERY_2, CART_TYPE_MBC3_TIMER_BATTERY, CART_TYPE_MBC3_TIMER_RAM_BATTERY_2, MBC3};
 use crate::cartridge::mbc::mbc5::{CART_TYPE_MBC5, CART_TYPE_MBC5_RAM, CART_TYPE_MBC5_RAM_BATTERY, CART_TYPE_MBC5_RUMBLE, CART_TYPE_MBC5_RUMBLE_RAM, CART_TYPE_MBC5_RUMBLE_RAM_BATTERY, MBC5};
-use crate::memory::Memory;
+use crate::mmu::Memory;
 use crate::Result;
 
 mod mbc;

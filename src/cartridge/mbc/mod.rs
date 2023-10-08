@@ -1,4 +1,4 @@
-use crate::memory::Memory;
+use crate::mmu::Memory;
 
 pub mod mbc1;
 pub mod mbc2;
