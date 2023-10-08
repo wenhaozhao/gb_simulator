@@ -427,6 +427,31 @@ pub trait Cartridge: Memory {
             global_checksum: self.global_checksum(),
         }
     }
+
+    fn check_logo(&self) -> Result<()> {
+        let logo = self.logo();
+        for i in 0..HEADER_NINTENDO_LOGO_LEN {
+            let v = logo[i as usize];
+            let expect = NINTENDO_LOGO[i as usize];
+            if v != expect {
+                return Err(format!("Nintendo logo check err, expect: {:?}, but got: {:?}", NINTENDO_LOGO, logo));
+            }
+        }
+        Ok(())
+    }
+
+    fn check_header(&self) -> Result<()> {
+        let header_check = self.header();
+        let mut checksum = 0u8;
+        for b in &header_check {
+            checksum = checksum.wrapping_sub(*b).wrapping_sub(1);
+        }
+        let expect = self.header_checksum();
+        if checksum != expect {
+            return Err(format!("Title checksum error, expect: {}, but got: {}", expect, checksum));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -446,8 +471,6 @@ pub struct CartridgeInfo {
 
 pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<Box<dyn Cartridge>> {
     let rom = Rom::new(rom_path.clone())?;
-    let _ = check_nintendo_logo(&rom)?;
-    let _ = check_header(&rom)?;
     let cart_type = rom.get(HEADER_CART_TYPE);
     let cart = match cart_type {
         CART_TYPE_ROM_ONLY => RomOnly::power_up(rom),
@@ -456,61 +479,15 @@ pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<
         CART_TYPE_MBC3_TIMER_BATTERY | CART_TYPE_MBC3_TIMER_RAM_BATTERY_2 | CART_TYPE_MBC3 | CART_TYPE_MBC3_RAM_2 | CART_TYPE_MBC3_RAM_BATTERY_2 => MBC3::power_up(rom, ram_path.clone(), rtc_path.clone()),
         CART_TYPE_MBC5 | CART_TYPE_MBC5_RAM | CART_TYPE_MBC5_RAM_BATTERY | CART_TYPE_MBC5_RUMBLE | CART_TYPE_MBC5_RUMBLE_RAM | CART_TYPE_MBC5_RUMBLE_RAM_BATTERY => MBC5::power_up(rom, ram_path.clone()),
         _ => Err(format!("Unsupported cartridge type: {}", cart_type))
-    };
-    cart
-}
-
-fn check_nintendo_logo(rom: &Rom) -> Result<()> {
-    let logo = rom.gets(HEADER_NINTENDO_LOGO_BASE, HEADER_NINTENDO_LOGO_LEN);
-    for i in 0..HEADER_NINTENDO_LOGO_LEN {
-        let v = logo[i as usize];
-        let expect = NINTENDO_LOGO[i as usize];
-        if v != expect {
-            return Err(format!("Nintendo logo check err, expect: {:?}, but got: {:?}", NINTENDO_LOGO, logo));
-        }
-    }
-    Ok(())
-}
-
-fn check_header(rom: &Rom) -> Result<()> {
-    let header_check = rom.gets(HEADER_CHECK_BASE, HEADER_CHECK_LEN);
-    let mut checksum = 0u8;
-    for b in &header_check {
-        checksum = checksum.wrapping_sub(*b).wrapping_sub(1);
-    }
-    let expect = rom.get(HEADER_CHECKSUM);
-    if checksum != expect {
-        return Err(format!("Title checksum error, expect: {}, but got: {}", expect, checksum));
-    }
-    Ok(())
-}
-
-fn rom_title_text(title_bytes: &Vec<u8>) -> Result<String> {
-    let title_text = String::from_utf8(
-        title_bytes.iter()
-            .filter(|b| **b > 0)
-            .map(|b| *b)
-            .collect::<Vec<u8>>()
-    )
-        .map_err(|err| format!("Create title string error, msg: {:?}", err))?;
-    Ok(title_text)
+    }?;
+    let _ = cart.check_logo()?;
+    let _ = cart.check_header()?;
+    Ok(cart)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::cartridge::{check_header, check_nintendo_logo, power_up, Rom};
-
-    #[test]
-    fn test_check_nintendo_logo() {
-        let rom = Rom::new(String::from("resources/cartridge/boxes.gb")).unwrap();
-        check_nintendo_logo(&rom).unwrap()
-    }
-
-    #[test]
-    fn test_check_header() {
-        let rom = Rom::new(String::from("resources/cartridge/boxes.gb")).unwrap();
-        check_header(&rom).unwrap();
-    }
+    use crate::cartridge::power_up;
 
     #[test]
     fn test_power_up() {
