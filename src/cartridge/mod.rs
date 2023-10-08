@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::Formatter;
 use std::fs::File;
 use std::io::{Read, Write};
 
@@ -9,8 +9,7 @@ use crate::cartridge::mbc::mbc5::{CART_TYPE_MBC5, CART_TYPE_MBC5_RAM, CART_TYPE_
 use crate::memory::Memory;
 use crate::Result;
 
-pub mod mbc;
-mod cartridge_types;
+mod mbc;
 
 /// HEADER 0x0100 - 0x014F
 const HEADER_BASE: u16 = 0x0100;
@@ -52,7 +51,7 @@ const HEADER_CGB_FLAG: u16 = 0x0143;
 const CGB_FLAG_COMPATIBLE: u8 = 0x80;
 const CGB_FLAG_ONLY: u8 = 0xC0;
 
-#[derive(Debug)]
+#[derive(derive_more::Display)]
 pub enum CGBFlag {
     None,
     Compatible,
@@ -80,7 +79,7 @@ const HEADER_NEW_LICENSEE_CODE_LEN: u16 = HEADER_NEW_LICENSEE_CODE_END - HEADER_
 /// SuperGameBoy(SGB) 标志 0x0146
 const HEADER_SGB_FLAG: u16 = 0x0146;
 
-#[derive(Debug)]
+#[derive(derive_more::Display)]
 pub enum SGBFlag {
     None,
     Ok,
@@ -232,7 +231,7 @@ pub trait Cartridge: Memory {
     fn ram(&self) -> Option<&Ram>;
     #[inline]
     fn header(&self) -> Vec<u8> {
-        self.rom().gets(HEADER_CHECK_BASE, HEADER_CHECK_LEN)
+        self.rom().gets(HEADER_BASE, HEADER_LEN)
     }
     #[inline]
     fn logo(&self) -> Vec<u8> {
@@ -441,7 +440,7 @@ pub trait Cartridge: Memory {
     }
 
     fn check_header(&self) -> Result<()> {
-        let header_check = self.header();
+        let header_check = self.rom().gets(HEADER_CHECK_BASE, HEADER_CHECK_LEN);
         let mut checksum = 0u8;
         for b in &header_check {
             checksum = checksum.wrapping_sub(*b).wrapping_sub(1);
@@ -454,7 +453,6 @@ pub trait Cartridge: Memory {
     }
 }
 
-#[derive(Debug)]
 pub struct CartridgeInfo {
     cgb_flag: CGBFlag,
     title: String,
@@ -467,6 +465,38 @@ pub struct CartridgeInfo {
     mask_rom_version_number: u8,
     header_checksum: u8,
     global_checksum: u16,
+}
+
+impl core::fmt::Display for CartridgeInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, r#"
+>>>>>>>> Cartridge Info <<<<<<<<
+cgb_flag: {},
+title: {},
+licensee_code: {},
+sgb_flag: {},
+cart_type: {},
+rom_size: {},
+ram_size: {},
+destination_code: {},
+mask_rom_version_number: {},
+header_checksum: {},
+global_checksum: {}
+>>>>>>>> Cartridge Info <<<<<<<<
+"#,
+               self.cgb_flag,
+               self.title,
+               self.licensee_code,
+               self.sgb_flag,
+               self.cart_type,
+               self.rom_size,
+               self.ram_size,
+               self.destination_code,
+               self.mask_rom_version_number,
+               self.header_checksum,
+               self.global_checksum,
+        )
+    }
 }
 
 pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<Box<dyn Cartridge>> {
@@ -500,6 +530,6 @@ mod tests {
         assert_eq!(title_text, String::from("BOXES"));
         println!(" rom manufacturer_code => {:02X?}", cart.manufacturer_code());
         let info = cart.info();
-        println!("{:?}", info);
+        println!("{}", info);
     }
 }

@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::cartridge::{Cartridge, Ram, Rom};
 use crate::cartridge::mbc::{MBC, RAM_BANK_LEN, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_LEN, ROM_X_BASE, ROM_X_END};
 use crate::memory::Memory;
@@ -72,7 +70,6 @@ impl Memory for MBC5 {
             RAM_X_BASE..=RAM_X_END => {
                 // ram or rtc
                 if self.ram_enable {
-                    let index = self.ram_bank_index();
                     // ram
                     let addr = self.ram_bank_index() * RAM_BANK_LEN + addr - RAM_X_BASE;
                     self.ram.get(addr)

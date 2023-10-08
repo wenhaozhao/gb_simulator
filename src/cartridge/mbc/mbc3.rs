@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use std::time::SystemTime;
 
 use crate::cartridge::{Cartridge, Ram, Rom};
@@ -63,7 +62,7 @@ impl Memory for RTC {
             0x08 => elapse % 60, // rtc seconds
             0x09 => elapse / 60 % 60, //rtc minutes
             0x0A => elapse / 3600 % 24, // rtc hours
-            0x0B => (elapse / 3600 / 24), // rtc dl days
+            0x0B => elapse / 3600 / 24, // rtc dl days
             0x0C => (elapse / 3600 / 24) & 0x1FF >> 8,
             _ => panic!("read rtc reg {} denied", reg),
         };
