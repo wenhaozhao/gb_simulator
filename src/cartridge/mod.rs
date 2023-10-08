@@ -315,8 +315,8 @@ mod tests {
     #[test]
     fn test_power_up() {
         let rom_path = String::from("resources/cartridge/boxes.gb");
-        let ram_path = String::from("target/save/ram");
-        let rtc_path = String::from("target/save/rtc");
+        let ram_path = String::from("target/_ram");
+        let rtc_path = String::from("target/_rtc");
         let cart = power_up(rom_path, ram_path, rtc_path).unwrap();
         let title_string = cart.title_string().unwrap();
         println!(" rom title_string => {}", title_string);
