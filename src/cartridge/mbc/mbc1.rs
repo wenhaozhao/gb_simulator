@@ -71,37 +71,35 @@ const RAM_X_BASE: u16 = 0xA000;
 const RAM_X_END: u16 = RAM_X_BASE + RAM_BANK_SIZE - 1;
 
 impl Memory for MBC1 {
-    fn read(&self, adr: u16) -> u8 {
-        match adr {
+    fn read(&self, addr: u16) -> u8 {
+        match addr {
             ROM_0_BASE..=ROM_0_END => {
-                self.rom.read(adr)
+                self.rom.read(addr)
             }
             ROM_X_BASE..=ROM_X_END => {
-                let adr = self.rom_bank_index() * ROM_BANK_SIZE + adr - ROM_X_BASE;
-                self.rom.read(adr)
+                let addr = self.rom_bank_index() * ROM_BANK_SIZE + addr - ROM_X_BASE;
+                self.rom.read(addr)
             }
             RAM_X_BASE..=RAM_X_END => {
                 if self.ram_enable {
-                    let adr = self.ram_bank_index() * RAM_BANK_SIZE + adr - RAM_X_BASE;
-                    self.ram.read(adr)
+                    let addr = self.ram_bank_index() * RAM_BANK_SIZE + addr - RAM_X_BASE;
+                    self.ram.read(addr)
                 } else {
                     0x00
                 }
             }
-            _ => {
-                panic!("read addr {} denied", adr)
-            }
+            _ => panic!("read addr {} denied", addr),
         }
     }
 
-    fn write(&mut self, offset: u16, value: u8) {
-        match offset {
+    fn write(&mut self, addr: u16, value: u8) {
+        match addr {
             0x0000..=0x1FFF => {
                 // RAM 启用/禁用标志
                 let after = (value & 0x0A) == 0x0A;
                 if !after && !(after && self.ram_enable) {
                     // ram access: enable -> disable
-                    self.ram.dump();
+                    let _ = self.ram.dump();
                 }
                 self.ram_enable = after;
             }
@@ -126,13 +124,11 @@ impl Memory for MBC1 {
             }
             RAM_X_BASE..=RAM_X_END => {
                 if self.ram_enable {
-                    let adr = self.ram_bank_index() * RAM_BANK_SIZE + offset - ROM_X_BASE;
-                    self.ram.write(adr, value)
+                    let addr = self.ram_bank_index() * RAM_BANK_SIZE + addr - ROM_X_BASE;
+                    self.ram.write(addr, value)
                 }
             }
-            _ => {
-                panic!("write addr {} denied", offset)
-            }
+            _ => panic!("write addr {} denied", addr),
         }
     }
 }
