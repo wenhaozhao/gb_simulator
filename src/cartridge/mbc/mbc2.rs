@@ -1,20 +1,28 @@
-use crate::cartridge::{Ram, Rom};
-use crate::cartridge::mbc::MBC;
+use crate::cartridge::{Cartridge, Ram, Rom};
+use crate::cartridge::mbc::{MBC, ROM_0_BASE, ROM_0_END, ROM_BANK_LEN, ROM_X_BASE, ROM_X_END};
 use crate::memory::Memory;
 use crate::Result;
 
+pub const CART_TYPE_MBC2: u8 = 0x05;
+pub const CART_TYPE_MBC2_BATTERY: u8 = 0x06;
+
 pub struct MBC2 {
     rom: Rom,
+    /// ram 512 * 4 Bits
     ram: Ram,
     bank: u8,
     ram_enable: bool,
 }
 
 impl MBC2 {
-    pub fn new(rom_path: String, ram_path: String) -> Result<Self> {
+    pub fn power_up(rom: Rom, ram_path: String) -> Result<Box<dyn Cartridge>> {
+        Ok(Box::new(MBC2::new(rom, ram_path)))
+    }
+
+    fn new(rom: Rom, ram_path: String) -> Result<Self> {
         Ok(MBC2 {
-            rom: Rom::new(rom_path)?,
-            ram: Ram::new(ram_path)?,
+            rom,
+            ram: Ram::new(ram_path, RAM_BANK_LEN, |len| vec![0u8; len as usize])?,
             bank: 0x01,
             ram_enable: false,
         })
@@ -26,38 +34,36 @@ impl MBC2 {
     }
 }
 
+impl Cartridge for MBC2 {
+    fn rom(&self) -> &Rom {
+        &self.rom
+    }
 
-/// rom 16KB
-const ROM_BANK_SIZE: u16 = 0x4000;
-/// rom_0 0x0000 - 0x3FFF
-const ROM_0_BASE: u16 = 0x0000;
-/// rom_0 0x0000 - 0x3FFF
-const ROM_0_END: u16 = ROM_0_BASE + ROM_BANK_SIZE - 1;
-/// rom_01-0F 0x4000 - 0x7FFF
-const ROM_X_BASE: u16 = 0x4000;
-/// rom_01-0F 0x4000 - 0x7FFF
-const ROM_X_END: u16 = ROM_X_BASE + ROM_BANK_SIZE - 1;
+    fn ram(&self) -> Option<&Ram> {
+        Some(&self.ram)
+    }
+}
 
 /// ram 512 * 4 Bits
-const RAM_BANK_SIZE: u16 = 0x200;
+const RAM_BANK_LEN: u16 = 0x200;
 /// ram 0xA000 - 0xA1FF
 const RAM_X_BASE: u16 = 0xA000;
 /// ram 0xA000 - 0xA1FF
-const RAM_X_END: u16 = RAM_X_BASE + RAM_BANK_SIZE - 1;
+const RAM_X_END: u16 = RAM_X_BASE + RAM_BANK_LEN - 1;
 
 impl Memory for MBC2 {
-    fn read(&self, addr: u16) -> u8 {
+    fn get(&self, addr: u16) -> u8 {
         match addr {
             ROM_0_BASE..=ROM_0_END => {
-                self.rom.read(addr)
+                self.rom.get(addr)
             }
             ROM_X_BASE..=ROM_X_END => {
-                let addr = self.rom_bank_index() * ROM_BANK_SIZE + addr - ROM_X_BASE;
-                self.rom.read(addr)
+                let addr = self.rom_bank_index() * ROM_BANK_LEN + addr - ROM_X_BASE;
+                self.rom.get(addr)
             }
             RAM_X_BASE..=RAM_X_END => {
                 if self.ram_enable {
-                    let v = self.rom.read(addr - RAM_X_BASE);
+                    let v = self.rom.get(addr - RAM_X_BASE);
                     v & 0x0F // 由于数据由 4 Bits 组成, 因此该存储区中只有每个字节的低 4 位才会被使用
                 } else {
                     0x00
@@ -67,7 +73,7 @@ impl Memory for MBC2 {
         }
     }
 
-    fn write(&mut self, addr: u16, value: u8) {
+    fn set(&mut self, addr: u16, value: u8) {
         match addr {
             0x0000..=0x1FFF => {
                 // RAM 启用/禁用标志
@@ -92,7 +98,7 @@ impl Memory for MBC2 {
             }
             RAM_X_BASE..=RAM_X_END => {
                 if self.ram_enable {
-                    self.ram.write(addr - RAM_X_BASE, value)
+                    self.ram.set(addr - RAM_X_BASE, value)
                 }
             }
             _ => panic!("write addr {} denied", addr),

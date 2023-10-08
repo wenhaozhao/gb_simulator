@@ -1,7 +1,14 @@
-use crate::cartridge::{Ram, Rom};
-use crate::cartridge::mbc::{MBC, RAM_BANK_SIZE, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_SIZE, ROM_X_BASE, ROM_X_END};
+use crate::cartridge::{Cartridge, Ram, Rom};
+use crate::cartridge::mbc::{MBC, RAM_BANK_LEN, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_LEN, ROM_X_BASE, ROM_X_END};
 use crate::memory::Memory;
 use crate::Result;
+
+pub const CART_TYPE_MBC1: u8 = 0x01;
+pub const CART_TYPE_MBC1_RAM: u8 = 0x02;
+pub const CART_TYPE_MBC1_RAM_BATTERY: u8 = 0x03;
+
+/// 4个ram
+const RAM_BANK_COUNT: u8 = 0b0_11_00000 >> 5 - 0x00 + 1;
 
 enum BankMode {
     ROM,
@@ -14,16 +21,21 @@ pub struct MBC1 {
     ///
     /// - BankMode   RAMBank   ROMBank
     /// - 1 bit      2 bit     5 bit
+    /// -            4个ram
     ///
     bank: u8,
     ram_enable: bool,
 }
 
 impl MBC1 {
-    pub fn new(rom_path: String, ram_path: String) -> Result<Self> {
+    pub fn power_up(rom: Rom, ram_path: String) -> Result<Box<dyn Cartridge>> {
+        Ok(Box::new(MBC1::new(rom, ram_path)))
+    }
+
+    fn new(rom: Rom, ram_path: String) -> Result<Self> {
         Ok(MBC1 {
-            rom: Rom::new(rom_path)?,
-            ram: Ram::new(ram_path)?,
+            rom,
+            ram: Ram::new(ram_path, RAM_BANK_LEN * RAM_BANK_COUNT, |len| vec![0u8; len as usize])?,
             bank: 0x01,
             ram_enable: false,
         })
@@ -56,21 +68,30 @@ impl MBC1 {
     }
 }
 
+impl Cartridge for MBC1 {
+    fn rom(&self) -> &Rom {
+        &self.rom
+    }
+
+    fn ram(&self) -> Option<&Ram> {
+        Some(&self.ram)
+    }
+}
 
 impl Memory for MBC1 {
-    fn read(&self, addr: u16) -> u8 {
+    fn get(&self, addr: u16) -> u8 {
         match addr {
             ROM_0_BASE..=ROM_0_END => {
-                self.rom.read(addr)
+                self.rom.get(addr)
             }
             ROM_X_BASE..=ROM_X_END => {
-                let addr = self.rom_bank_index() * ROM_BANK_SIZE + addr - ROM_X_BASE;
-                self.rom.read(addr)
+                let addr = self.rom_bank_index() * ROM_BANK_LEN + addr - ROM_X_BASE;
+                self.rom.get(addr)
             }
             RAM_X_BASE..=RAM_X_END => {
                 if self.ram_enable {
-                    let addr = self.ram_bank_index() * RAM_BANK_SIZE + addr - RAM_X_BASE;
-                    self.ram.read(addr)
+                    let addr = self.ram_bank_index() * RAM_BANK_LEN + addr - RAM_X_BASE;
+                    self.ram.get(addr)
                 } else {
                     0x00
                 }
@@ -79,7 +100,7 @@ impl Memory for MBC1 {
         }
     }
 
-    fn write(&mut self, addr: u16, value: u8) {
+    fn set(&mut self, addr: u16, value: u8) {
         match addr {
             0x0000..=0x1FFF => {
                 // RAM 启用/禁用标志
@@ -111,8 +132,8 @@ impl Memory for MBC1 {
             }
             RAM_X_BASE..=RAM_X_END => {
                 if self.ram_enable {
-                    let addr = self.ram_bank_index() * RAM_BANK_SIZE + addr - RAM_X_BASE;
-                    self.ram.write(addr, value)
+                    let addr = self.ram_bank_index() * RAM_BANK_LEN + addr - RAM_X_BASE;
+                    self.ram.set(addr, value)
                 }
             }
             _ => panic!("write addr {} denied", addr),

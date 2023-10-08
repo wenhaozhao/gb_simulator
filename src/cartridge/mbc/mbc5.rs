@@ -1,23 +1,40 @@
 use std::str::FromStr;
 
-use crate::cartridge::{Ram, Rom};
-use crate::cartridge::mbc::{MBC, RAM_BANK_SIZE, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_SIZE, ROM_X_BASE, ROM_X_END};
+use crate::cartridge::{Cartridge, Ram, Rom};
+use crate::cartridge::mbc::{MBC, RAM_BANK_LEN, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_LEN, ROM_X_BASE, ROM_X_END};
 use crate::memory::Memory;
 use crate::Result;
+
+
+pub const CART_TYPE_MBC5: u8 = 0x19;
+pub const CART_TYPE_MBC5_RAM: u8 = 0x1A;
+pub const CART_TYPE_MBC5_RAM_BATTERY: u8 = 0x1B;
+pub const CART_TYPE_MBC5_RUMBLE: u8 = 0x1C;
+pub const CART_TYPE_MBC5_RUMBLE_RAM: u8 = 0x1D;
+pub const CART_TYPE_MBC5_RUMBLE_RAM_BATTERY: u8 = 0x1E;
+
+/// 16个ram
+const RAM_BANK_COUNT: u8 = 0x0F - 0x00 + 1;
 
 pub struct MBC5 {
     rom: Rom,
     ram: Ram,
+    /// 0x0000 - 0x01FF
     rom_bank: u16,
+    /// 0x00 - 0x0F
     ram_bank: u16,
     ram_enable: bool,
 }
 
 impl MBC5 {
-    pub fn new(rom_path: String, ram_path: String) -> Result<Self> {
+    pub fn power_up(rom: Rom, ram_path: String) -> Result<Box<dyn Cartridge>> {
+        Ok(Box::new(MBC5::new(rom, ram_path)))
+    }
+
+    pub fn new(rom: Rom, ram_path: String) -> Result<Self> {
         Ok(MBC5 {
-            rom: Rom::new(rom_path)?,
-            ram: Ram::new(ram_path)?,
+            rom,
+            ram: Ram::new(ram_path, RAM_BANK_LEN * RAM_BANK_COUNT, |len| vec![0u8; len as usize])?,
             rom_bank: 0x0001,
             ram_bank: 0x0000,
             ram_enable: false,
@@ -33,23 +50,33 @@ impl MBC5 {
     }
 }
 
+impl Cartridge for MBC5 {
+    fn rom(&self) -> &Rom {
+        &self.rom
+    }
+
+    fn ram(&self) -> Option<&Ram> {
+        Some(&self.ram)
+    }
+}
+
 impl Memory for MBC5 {
-    fn read(&self, addr: u16) -> u8 {
+    fn get(&self, addr: u16) -> u8 {
         match addr {
             ROM_0_BASE..=ROM_0_END => {
-                self.rom.read(addr)
+                self.rom.get(addr)
             }
             ROM_X_BASE..=ROM_X_END => {
-                let addr = self.rom_bank_index() * ROM_BANK_SIZE + addr - ROM_X_BASE;
-                self.rom.read(addr)
+                let addr = self.rom_bank_index() * ROM_BANK_LEN + addr - ROM_X_BASE;
+                self.rom.get(addr)
             }
             RAM_X_BASE..=RAM_X_END => {
                 // ram or rtc
                 if self.ram_enable {
                     let index = self.ram_bank_index();
                     // ram
-                    let addr = self.ram_bank_index() * RAM_BANK_SIZE + addr - RAM_X_BASE;
-                    self.ram.read(addr)
+                    let addr = self.ram_bank_index() * RAM_BANK_LEN + addr - RAM_X_BASE;
+                    self.ram.get(addr)
                 } else {
                     0x00
                 }
@@ -58,7 +85,7 @@ impl Memory for MBC5 {
         }
     }
 
-    fn write(&mut self, addr: u16, value: u8) {
+    fn set(&mut self, addr: u16, value: u8) {
         match addr {
             0x0000..=0x1FFF => {
                 // RAM/RTC 启用/禁用标志
@@ -86,8 +113,8 @@ impl Memory for MBC5 {
             }
             RAM_X_BASE..=RAM_X_END => {
                 if self.ram_enable {
-                    let addr = self.ram_bank_index() * RAM_BANK_SIZE + addr - RAM_X_BASE;
-                    self.ram.write(addr, value)
+                    let addr = self.ram_bank_index() * RAM_BANK_LEN + addr - RAM_X_BASE;
+                    self.ram.set(addr, value)
                 }
             }
             _ => panic!("write addr {} denied", addr),

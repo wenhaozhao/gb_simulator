@@ -19,7 +19,9 @@ fn rom_name(rom: &[u8]) -> String {
 fn check_checksum(rom: &[u8]) -> bool {
     let mut v: u8 = 0;
     for i in 0x0134..0x014d {
-        v = v.wrapping_sub(rom[i]).wrapping_sub(1);
+        let b = rom[i];
+        println!("{:02X}", b);
+        v = v.wrapping_sub(b).wrapping_sub(1);
     }
     rom[0x014d] == v
 }

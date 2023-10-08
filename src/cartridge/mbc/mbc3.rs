@@ -1,10 +1,16 @@
 use std::str::FromStr;
 use std::time::SystemTime;
 
-use crate::cartridge::{Ram, Rom};
-use crate::cartridge::mbc::{MBC, RAM_BANK_SIZE, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_SIZE, ROM_X_BASE, ROM_X_END};
+use crate::cartridge::{Cartridge, Ram, Rom};
+use crate::cartridge::mbc::{MBC, RAM_BANK_LEN, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_LEN, ROM_X_BASE, ROM_X_END};
 use crate::memory::Memory;
 use crate::Result;
+
+pub const CART_TYPE_MBC3_TIMER_BATTERY: u8 = 0x0F;
+pub const CART_TYPE_MBC3_TIMER_RAM_BATTERY_2: u8 = 0x10;
+pub const CART_TYPE_MBC3: u8 = 0x11;
+pub const CART_TYPE_MBC3_RAM_2: u8 = 0x12;
+pub const CART_TYPE_MBC3_RAM_BATTERY_2: u8 = 0x13;
 
 ///
 /// RealTimeClock, RTC
@@ -25,28 +31,23 @@ pub struct RTC {
 
 impl RTC {
     fn new(path: String) -> Result<Self> {
-        match Ram::new(path.clone()) {
-            Ok(ram) => {
-                let mut bytes: [u8; 8] = Default::default();
-                bytes.copy_from_slice(ram.mem());
-                // big endian
-                let t0 = u64::from_be_bytes(bytes);
-                Ok(RTC { ram, t0 })
-            }
-            Err(_) => {
-                let t0 = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-                let bytes = t0.to_be_bytes().to_vec();
-                let ram = Ram::from(bytes, path.clone());
-                ram.dump()?;
-                Ok(RTC { ram, t0 })
-            }
-        }
+        let ram = Ram::new(path.clone(), 8, |len| {
+            let t0 = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+            let bytes = t0.to_be_bytes().to_vec();
+            bytes
+        })?;
+        let mut bytes: [u8; 8] = Default::default();
+        bytes.copy_from_slice(ram.mem());
+        // big endian
+        let t0 = u64::from_be_bytes(bytes);
+        Ok(RTC { ram, t0 })
     }
 
     fn latched(&mut self) -> Result<()> {
         let t0 = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+        // big endian
         let bytes = t0.to_be_bytes().to_vec();
-        self.ram.writes(0, &bytes);
+        self.ram.sets(0, &bytes);
         self.ram.dump()?;
         self.t0 = t0;
         Ok(())
@@ -54,7 +55,7 @@ impl RTC {
 }
 
 impl Memory for RTC {
-    fn read(&self, reg: u16) -> u8 {
+    fn get(&self, reg: u16) -> u8 {
         let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
         let t0 = self.t0;
         let elapse = now - t0;
@@ -69,25 +70,34 @@ impl Memory for RTC {
         (v & 0xFF) as u8
     }
 
-    fn write(&mut self, _: u16, _: u8) {
+    fn set(&mut self, _: u16, _: u8) {
         // ignore rtc write
     }
 }
+
+/// 4个ram
+const RAM_BANK_COUNT: u8 = 0x03 - 0x00 + 1;
 
 pub struct MBC3 {
     rom: Rom,
     ram: Ram,
     rtc: RTC,
     rom_bank: u8,
+    /// 0x01 - 0x07
     ram_bank: u8,
+    /// ram 0x00 - 0x03, rtc 0x08 - 0x0C
     ram_enable: bool,
 }
 
 impl MBC3 {
-    pub fn new(rom_path: String, ram_path: String, rtc_path: String) -> Result<Self> {
+    pub fn power_up(rom: Rom, ram_path: String, rtc_path: String) -> Result<Box<dyn Cartridge>> {
+        Ok(Box::new(MBC3::new(rom, ram_path, rtc_path)))
+    }
+
+    fn new(rom: Rom, ram_path: String, rtc_path: String) -> Result<Self> {
         Ok(MBC3 {
-            rom: Rom::new(rom_path)?,
-            ram: Ram::new(ram_path)?,
+            rom,
+            ram: Ram::new(ram_path, RAM_BANK_LEN * RAM_BANK_COUNT, |len| vec![0u8; len as usize])?,
             rtc: RTC::new(rtc_path)?,
             rom_bank: 0x01,
             ram_bank: 0x00,
@@ -106,15 +116,25 @@ impl MBC3 {
     }
 }
 
+impl Cartridge for MBC3 {
+    fn rom(&self) -> &Rom {
+        &self.rom
+    }
+
+    fn ram(&self) -> Option<&Ram> {
+        Some(&self.ram)
+    }
+}
+
 impl Memory for MBC3 {
-    fn read(&self, addr: u16) -> u8 {
+    fn get(&self, addr: u16) -> u8 {
         match addr {
             ROM_0_BASE..=ROM_0_END => {
-                self.rom.read(addr)
+                self.rom.get(addr)
             }
             ROM_X_BASE..=ROM_X_END => {
-                let addr = self.rom_bank_index() * ROM_BANK_SIZE + addr - ROM_X_BASE;
-                self.rom.read(addr)
+                let addr = self.rom_bank_index() * ROM_BANK_LEN + addr - ROM_X_BASE;
+                self.rom.get(addr)
             }
             RAM_X_BASE..=RAM_X_END => {
                 // ram or rtc
@@ -123,12 +143,12 @@ impl Memory for MBC3 {
                     match index {
                         0x00..=0x03 => {
                             // ram
-                            let addr = index * RAM_BANK_SIZE + addr - RAM_X_BASE;
-                            self.ram.read(addr)
+                            let addr = index * RAM_BANK_LEN + addr - RAM_X_BASE;
+                            self.ram.get(addr)
                         }
                         0x08..=0x0C => {
                             // rtc registers
-                            self.rtc.read(index)
+                            self.rtc.get(index)
                         }
                         _ => 0x00,
                     }
@@ -140,7 +160,7 @@ impl Memory for MBC3 {
         }
     }
 
-    fn write(&mut self, addr: u16, value: u8) {
+    fn set(&mut self, addr: u16, value: u8) {
         match addr {
             0x0000..=0x1FFF => {
                 // RAM/RTC 启用/禁用标志
@@ -178,12 +198,12 @@ impl Memory for MBC3 {
                     match index {
                         0x00..=0x03 => {
                             // ram
-                            let addr = index * RAM_BANK_SIZE + addr - RAM_X_BASE;
-                            self.ram.write(addr, value)
+                            let addr = index * RAM_BANK_LEN + addr - RAM_X_BASE;
+                            self.ram.set(addr, value)
                         }
                         0x08..=0x0C => {
                             // rtc registers
-                            self.rtc.write(index, value)
+                            self.rtc.set(index, value)
                         }
                         _ => (),
                     }
