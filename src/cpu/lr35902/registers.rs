@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::cpu::{get_bit, get_hi, get_lo, set_bit, set_hi, set_lo};
 
 /// ## Registers
@@ -23,7 +25,17 @@ pub struct Registers {
     pc: u16,
 }
 
+impl Default for Registers {
+    fn default() -> Self {
+        unsafe { mem::transmute::<[u16; 6], Registers>([0u16; 6]) }
+    }
+}
+
 impl Registers {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
     #[inline]
     pub fn get_af(&self) -> u16 {
         self.af
