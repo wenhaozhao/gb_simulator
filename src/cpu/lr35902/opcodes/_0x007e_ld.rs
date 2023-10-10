@@ -31,6 +31,8 @@ impl Opcode for _0x007E {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+        let right = cpu.register.get_hl();
+let right = cpu.memory.borrow().get(right);
+cpu.register.set_a(right);
     }
 }

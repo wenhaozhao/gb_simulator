@@ -31,6 +31,7 @@ impl Opcode for _0x006A {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+        let right = cpu.register.get_d();
+cpu.register.set_l(right);
     }
 }

@@ -31,6 +31,7 @@ impl Opcode for _0x0001 {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+        let right = cpu.imm_u16();
+        cpu.register.set_bc(right);
     }
 }

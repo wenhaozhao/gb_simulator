@@ -31,6 +31,7 @@ impl Opcode for _0x005B {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+        let right = cpu.register.get_e();
+cpu.register.set_e(right);
     }
 }

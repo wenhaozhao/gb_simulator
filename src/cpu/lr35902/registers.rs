@@ -229,16 +229,6 @@ impl Registers {
         self.sp = val;
     }
 
-    #[inline]
-    pub fn sp_incr(&mut self) {
-        self.sp += 1;
-    }
-
-    #[inline]
-    pub fn sp_decr(&mut self) {
-        self.sp -= 1;
-    }
-
     /// Program Counter/Pointer
     #[inline]
     pub fn get_pc(&self) -> u16 {
@@ -249,14 +239,93 @@ impl Registers {
     pub fn set_pc(&mut self, val: u16) {
         self.pc = val;
     }
+}
+
+impl Registers {
+    #[inline]
+    pub fn sp_incr(&mut self) {
+        self.sp += 1;
+    }
+
+    #[inline]
+    pub fn sp_decr(&mut self) {
+        self.sp -= 1;
+    }
+}
+
+impl Registers {
+    #[inline]
+    pub fn pc_incr_by(&mut self, by: u16) {
+        self.pc += by;
+    }
+
+    #[inline]
+    pub fn pc_get_and_incr_by(&mut self, by: u16) -> u16 {
+        let before = self.pc;
+        self.pc_incr_by(by);
+        before
+    }
 
     #[inline]
     pub fn pc_incr(&mut self) {
-        self.pc += 1;
+        self.pc_incr_by(0x0001u16);
+    }
+
+    #[inline]
+    pub fn pc_get_and_incr(&mut self) -> u16 {
+        let before = self.pc;
+        self.pc_incr();
+        before
+    }
+
+    #[inline]
+    pub fn pc_incr_by_and_get(&mut self, by: u16) -> u16 {
+        self.pc_incr_by(by);
+        self.pc
+    }
+
+    #[inline]
+    pub fn pc_incr_and_get(&mut self) -> u16 {
+        self.pc_incr_by_and_get(0x0001u16);
+        self.pc
+    }
+}
+
+
+impl Registers {
+    #[inline]
+    pub fn pc_decr_by(&mut self, by: u16) {
+        self.pc -= by;
+    }
+
+    #[inline]
+    pub fn pc_get_and_decr_by(&mut self, by: u16) -> u16 {
+        let before = self.pc;
+        self.pc_decr_by(by);
+        before
     }
 
     #[inline]
     pub fn pc_decr(&mut self) {
-        self.pc -= 1;
+        self.pc_decr_by(0x0001u16);
+    }
+
+    #[inline]
+    pub fn pc_get_and_decr(&mut self) -> u16 {
+        let before = self.pc;
+        self.pc_decr();
+        before
+    }
+
+    #[inline]
+    pub fn pc_decr_by_and_get(&mut self, by: u16) -> u16 {
+        self.pc_decr_by(by);
+        self.pc
+    }
+
+    #[inline]
+    pub fn pc_decr_and_get(&mut self) -> u16 {
+        self.pc_decr_by_and_get(0x0001u16);
+        self.pc
     }
 }

@@ -1039,6 +1039,10 @@ pub static OPCODES: [Option<&'static dyn Opcode>; 0x0200] = [
     Some(&_0xCBF0_), Some(&_0xCBF1_), Some(&_0xCBF2_), Some(&_0xCBF3_), Some(&_0xCBF4_), Some(&_0xCBF5_), Some(&_0xCBF6_), Some(&_0xCBF7_), Some(&_0xCBF8_), Some(&_0xCBF9_), Some(&_0xCBFA_), Some(&_0xCBFB_), Some(&_0xCBFC_), Some(&_0xCBFD_), Some(&_0xCBFE_), Some(&_0xCBFF_), 
 ];
 
+/// ## get_opcode
+/// ### addr
+/// - instruction set 0x00_XX
+/// - ext instruction (prefix cb) 0xCB_XX
 pub fn get_opcode(addr: u16) -> Option<&'static dyn Opcode> {
     let opcode_index = if addr & 0xCB00 == 0xCB00 {
         (addr & 0x00FF) | 0x0100

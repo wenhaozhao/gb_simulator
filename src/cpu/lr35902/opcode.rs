@@ -1,6 +1,8 @@
 use crate::cpu::lr35902::LR35902;
 use crate::cpu::lr35902::registers::Flag;
 
+pub const OPCODE_PREFIX_CB: u16 = 0x00CB;
+
 pub struct OpcodeMeta {
     pub mnemonic: &'static str,
     pub length: u8,
@@ -16,6 +18,9 @@ impl OpcodeMeta {}
 
 pub trait Opcode: Send + Sync {
     fn meta(&self) -> &'static OpcodeMeta;
+
+    /// exec
+    /// return Duration in cycles
     fn exec(&self, cpu: &mut LR35902);
 }
 
