@@ -29,6 +29,25 @@ pub struct Registers {
     pc: u16,
 }
 
+/// Register
+#[derive(Debug)]
+pub enum Register {
+    AF,
+    A,
+    F,
+    BC,
+    B,
+    C,
+    DE,
+    D,
+    E,
+    HL,
+    H,
+    L,
+    SP,
+    PC,
+}
+
 impl Default for Registers {
     fn default() -> Self {
         unsafe { mem::transmute::<[u16; 6], Registers>([0u16; 6]) }
@@ -39,11 +58,103 @@ impl Registers {
     pub fn new() -> Self {
         Default::default()
     }
+
+    pub fn get_u16(&self, reg: Register) -> u16 {
+        match reg {
+            Register::AF => self.get_af(),
+            Register::A => self.get_af_hi() as u16,
+            Register::F => self.get_af_lo() as u16,
+            Register::BC => self.get_bc(),
+            Register::B => self.get_bc_hi() as u16,
+            Register::C => self.get_bc_lo() as u16,
+            Register::DE => self.get_de(),
+            Register::D => self.get_de_hi() as u16,
+            Register::E => self.get_de_lo() as u16,
+            Register::HL => self.get_hl(),
+            Register::H => self.get_hl_hi() as u16,
+            Register::L => self.get_hl_lo() as u16,
+            Register::SP => self.get_sp(),
+            Register::PC => self.get_pc(),
+        }
+    }
+
+    pub fn get_and_incr_u16(&mut self, reg: Register) -> u16 {
+        match reg {
+            Register::AF => self.af_get_and_incr(),
+            Register::BC => self.bc_get_and_incr(),
+            Register::DE => self.de_get_and_incr(),
+            Register::HL => self.hl_get_and_incr(),
+            Register::SP => self.sp_get_and_incr(),
+            Register::PC => self.pc_get_and_incr(),
+            other => panic!("Unsupported operation:{} for register:{:?}", "get_and_incr_u16", other)
+        }
+    }
+
+    pub fn get_and_decr_u16(&mut self, reg: Register) -> u16 {
+        match reg {
+            Register::AF => self.af_get_and_decr(),
+            Register::BC => self.bc_get_and_decr(),
+            Register::DE => self.de_get_and_decr(),
+            Register::HL => self.hl_get_and_decr(),
+            Register::SP => self.sp_get_and_decr(),
+            Register::PC => self.pc_get_and_decr(),
+            other => panic!("Unsupported operation:{} for register:{:?}", "get_and_decr_u16", other)
+        }
+    }
+
+    pub fn get_u8(&self, reg: Register) -> u8 {
+        match reg {
+            Register::AF => self.get_af() as u8,
+            Register::A => self.get_af_hi(),
+            Register::F => self.get_af_lo(),
+            Register::BC => self.get_bc() as u8,
+            Register::B => self.get_bc_hi(),
+            Register::C => self.get_bc_lo(),
+            Register::DE => self.get_de() as u8,
+            Register::D => self.get_de_hi(),
+            Register::E => self.get_de_lo(),
+            Register::HL => self.get_hl() as u8,
+            Register::H => self.get_hl_hi(),
+            Register::L => self.get_hl_lo(),
+            Register::SP => self.get_sp() as u8,
+            Register::PC => self.get_pc() as u8,
+        }
+    }
+
+    pub fn set_u16(&mut self, reg: Register, val: u16) {
+        match reg {
+            Register::AF => self.set_af(val),
+            Register::BC => self.set_bc(val),
+            Register::DE => self.set_de(val),
+            Register::HL => self.set_hl(val),
+            Register::SP => self.set_sp(val),
+            Register::PC => self.set_pc(val),
+            other => panic!("Unsupported operation:{} for register:{:?} with val:{}", "set_u16", other, val)
+        };
+    }
+
+    pub fn set_u8(&mut self, reg: Register, val: u8) {
+        match reg {
+            Register::AF => self.set_af(val as u16),
+            Register::A => self.set_af_hi(val),
+            Register::F => self.set_af_lo(val),
+            Register::BC => self.set_bc(val as u16),
+            Register::B => self.set_bc_hi(val),
+            Register::C => self.set_bc_lo(val),
+            Register::DE => self.set_de(val as u16),
+            Register::D => self.set_de_hi(val),
+            Register::E => self.set_de_lo(val),
+            Register::HL => self.set_hl(val as u16),
+            Register::H => self.set_hl_hi(val),
+            Register::L => self.set_hl_lo(val),
+            Register::SP => self.set_sp(val as u16),
+            Register::PC => self.set_pc(val as u16),
+        };
+    }
 }
 
 /// General registers
 impl Registers {
-
     #[inline]
     pub fn get_a(&self) -> u8 {
         get_hi(&self.af)
@@ -66,7 +177,6 @@ impl Registers {
 }
 
 impl Registers {
-
     #[inline]
     pub fn get_b(&self) -> u8 {
         get_hi(&self.bc)
@@ -89,7 +199,6 @@ impl Registers {
 }
 
 impl Registers {
-
     #[inline]
     pub fn get_d(&self) -> u8 {
         get_hi(&self.de)
@@ -112,7 +221,6 @@ impl Registers {
 }
 
 impl Registers {
-
     #[inline]
     pub fn get_h(&self) -> u8 {
         get_hi(&self.hl)
@@ -144,6 +252,7 @@ impl Registers {
 ///   6 |   n  | Subtraction flag (BCD)
 ///   5 |   h  | Half Carry flag (BCD)
 ///   4 |   c  | Carry flag
+#[derive(Copy, Clone)]
 pub enum Flag {
     /// Bit | Name | Explanation
     /// ----|------|-------
@@ -226,5 +335,4 @@ mod tests {
         let bc_lo = registers.get_bc_hi();
         assert_eq!(bc_lo, 0x20);
     }
-
 }
