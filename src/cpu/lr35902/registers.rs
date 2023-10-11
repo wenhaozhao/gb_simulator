@@ -155,6 +155,7 @@ impl Registers {
 
 /// General registers
 impl Registers {
+
     #[inline]
     pub fn get_a(&self) -> u8 {
         get_hi(&self.af)
@@ -177,6 +178,7 @@ impl Registers {
 }
 
 impl Registers {
+
     #[inline]
     pub fn get_b(&self) -> u8 {
         get_hi(&self.bc)
@@ -199,6 +201,7 @@ impl Registers {
 }
 
 impl Registers {
+
     #[inline]
     pub fn get_d(&self) -> u8 {
         get_hi(&self.de)
@@ -221,6 +224,7 @@ impl Registers {
 }
 
 impl Registers {
+
     #[inline]
     pub fn get_h(&self) -> u8 {
         get_hi(&self.hl)
@@ -335,4 +339,5 @@ mod tests {
         let bc_lo = registers.get_bc_hi();
         assert_eq!(bc_lo, 0x20);
     }
+
 }
