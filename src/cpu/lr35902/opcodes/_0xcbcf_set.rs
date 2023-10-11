@@ -30,7 +30,7 @@ impl Opcode for _0xCBCF {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
         todo!()
     }
 }

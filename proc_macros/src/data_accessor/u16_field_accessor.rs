@@ -21,6 +21,8 @@ pub fn macro_impl(input: &syn::DeriveInput) -> TokenStream {
                 let get = format_ident!("get_{}", field_name.to_string());
                 let set = format_ident!("set_{}", field_name.to_string());
                 let _incr_by = format_ident!("{}_incr_by", field_name.to_string());
+                let _incr_by_i16 = format_ident!("{}_incr_by_i16", field_name.to_string());
+                let _incr_by_i8 = format_ident!("{}_incr_by_i8", field_name.to_string());
                 let _get_and_incr_by = format_ident!("{}_get_and_incr_by", field_name.to_string());
                 let _incr = format_ident!("{}_incr", field_name.to_string());
                 let _get_and_incr = format_ident!("{}_get_and_incr", field_name.to_string());
@@ -54,6 +56,16 @@ impl #struct_name {
     #[inline]
     pub fn #_incr_by(&mut self, by: u16) {
         self.#field_name += by;
+    }
+
+    #[inline]
+    pub fn #_incr_by_i16(&mut self, by: i16){
+        self.#field_name = (self.#field_name as i32 + by as i32) as u16 ;
+    }
+
+    #[inline]
+    pub fn #_incr_by_i8(&mut self, by: i8){
+        self.#_incr_by_i16(by as i16);
     }
 
     #[inline]

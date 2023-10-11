@@ -30,11 +30,11 @@ impl Opcode for _0x0001 {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
         
 let right = cpu.imm_u16();
 // no flag effect
 cpu.register.set_u16(Register::BC, right);
-
+self.meta.cycles[0]
     }
 }

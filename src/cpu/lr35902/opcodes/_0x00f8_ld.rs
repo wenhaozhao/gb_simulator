@@ -30,7 +30,7 @@ impl Opcode for _0x00F8 {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
         
 let flag_effect_l = cpu.register.get_u16(Register::SP);
 let flag_effect_r = cpu.imm_u8() as i8 as i16 as u16;
@@ -43,6 +43,6 @@ self.meta.flags[1].effect(cpu, 0, 0);
 self.meta.flags[2].effect(cpu, flag_effect_l, flag_effect_r);
 self.meta.flags[3].effect(cpu, flag_effect_l, flag_effect_r);
 cpu.register.set_u16(Register::HL, right);
-
+self.meta.cycles[0]
     }
 }

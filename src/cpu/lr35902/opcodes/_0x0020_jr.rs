@@ -30,7 +30,13 @@ impl Opcode for _0x0020 {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
+        let left = !cpu.register.get_flag(Flag::Z);
+if left {
+    let right = cpu.imm_u8() as i8;
+    cpu.register.pc_incr_by_i8(right);
+    self.meta.cycles[0]
+}
+self.meta.cycles[1]
     }
 }

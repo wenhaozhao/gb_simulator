@@ -20,8 +20,8 @@ pub trait Opcode: Send + Sync {
     fn meta(&self) -> &'static OpcodeMeta;
 
     /// exec
-    /// return Duration in cycles
-    fn exec(&self, cpu: &mut LR35902);
+    /// return actual duration in cycles
+    fn exec(&self, cpu: &mut LR35902) -> u8;
 }
 
 pub enum FlagEffect {

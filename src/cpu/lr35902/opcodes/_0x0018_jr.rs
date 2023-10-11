@@ -30,7 +30,9 @@ impl Opcode for _0x0018 {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
+        let left = cpu.imm_u8() as i8;
+cpu.register.pc_incr_by_i8(left);
+self.meta.cycles[0]
     }
 }

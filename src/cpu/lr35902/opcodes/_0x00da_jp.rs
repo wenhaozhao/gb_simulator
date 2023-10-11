@@ -9,13 +9,13 @@ static META: OpcodeMeta = OpcodeMeta {
     flags: [FlagEffect::None, FlagEffect::None, FlagEffect::None, FlagEffect::None],
     addr: 0xDA,
     group: "control/br",
-    parameters: [Some("C"), Some("a16")],
+    parameters: [Some("CC"), Some("a16")],
     cb_prefixed: false,
 };
 
 /// Instruction | Parameters | Opcode | Cycles
 /// ----------- | ---------- | ------ | ------
-/// JP | C,a16 | 0xDA | 16/12
+/// JP | CC,a16 | 0xDA | 16/12
 pub struct _0x00DA {
     meta: &'static OpcodeMeta,
 }
@@ -30,7 +30,7 @@ impl Opcode for _0x00DA {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
         todo!()
     }
 }

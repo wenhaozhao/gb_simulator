@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::time::Duration;
 
 use crate::cpu::CPU;
 use crate::cpu::lr35902::registers::Registers;
@@ -29,7 +30,17 @@ impl LR35902 {
         u16::from_le_bytes(bytes)
     }
 
-    fn exec(&mut self) {
+}
+
+const CLOCK_FREQUENCY: u64 = 0x0040_0000; // 4MHz
+impl LR35902 {
+    fn sleep(&self, duration: Duration) {
+
+    }
+}
+
+impl CPU for LR35902 {
+    fn run(&mut self) {
         use opcode::OPCODE_PREFIX_CB as PREFIX_CB;
         let opcode_addr = self.imm_u8() as u16;
         let actual_opcode_addr = if opcode_addr ==  PREFIX_CB {
@@ -39,9 +50,6 @@ impl LR35902 {
         };
         let opcode = opcodes::get_opcode(actual_opcode_addr)
             .expect(format!("Unsupported opcode {:04X}", actual_opcode_addr).as_str());
-        opcode.exec(self);
+        let cycles = opcode.exec(self);
     }
-
 }
-
-impl CPU for LR35902 {}

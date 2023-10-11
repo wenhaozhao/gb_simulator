@@ -30,12 +30,12 @@ impl Opcode for _0x00FA {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
         
 let right = cpu.imm_u16();
 let right = cpu.memory.borrow().get(right);
 // no flag effect
 cpu.register.set_u8(Register::A, right);
-
+self.meta.cycles[0]
     }
 }

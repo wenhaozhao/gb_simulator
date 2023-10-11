@@ -1,6 +1,10 @@
 mod lr35902;
 
-pub trait CPU {}
+pub trait CPU {
+
+    ///
+    fn run(&mut self);
+}
 
 
 #[inline]

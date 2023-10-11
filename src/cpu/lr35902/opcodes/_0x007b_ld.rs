@@ -30,11 +30,11 @@ impl Opcode for _0x007B {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
         
 let right = cpu.register.get_u8(Register::E);
 // no flag effect
 cpu.register.set_u8(Register::A, right);
-
+self.meta.cycles[0]
     }
 }

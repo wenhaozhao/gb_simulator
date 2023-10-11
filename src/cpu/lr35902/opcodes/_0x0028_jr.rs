@@ -9,13 +9,13 @@ static META: OpcodeMeta = OpcodeMeta {
     flags: [FlagEffect::None, FlagEffect::None, FlagEffect::None, FlagEffect::None],
     addr: 0x28,
     group: "control/br",
-    parameters: [Some("Z"), Some("r8")],
+    parameters: [Some("ZZ"), Some("r8")],
     cb_prefixed: false,
 };
 
 /// Instruction | Parameters | Opcode | Cycles
 /// ----------- | ---------- | ------ | ------
-/// JR | Z,r8 | 0x28 | 12/8
+/// JR | ZZ,r8 | 0x28 | 12/8
 pub struct _0x0028 {
     meta: &'static OpcodeMeta,
 }
@@ -30,7 +30,13 @@ impl Opcode for _0x0028 {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+    fn exec(&self, cpu: &mut LR35902) -> u8 {
+        let left = cpu.register.get_flag(Flag::Z);
+if left {
+    let right = cpu.imm_u8() as i8;
+    cpu.register.pc_incr_by_i8(right);
+    self.meta.cycles[0]
+}
+self.meta.cycles[1]
     }
 }
