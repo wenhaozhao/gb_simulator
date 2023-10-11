@@ -32,7 +32,8 @@ impl Opcode for _0x00FA {
 
     fn exec(&self, cpu: &mut LR35902) {
         
-let right = cpu.memory.borrow().get(cpu.imm_u16());
+let right = cpu.imm_u16();
+let right = cpu.memory.borrow().get(right);
 
 cpu.register.set_u8(Register::A, right);
 
