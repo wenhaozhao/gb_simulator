@@ -36,7 +36,7 @@ pub enum FlagEffect {
 }
 
 impl FlagEffect {
-    pub fn effect(&self, cpu: &mut LR35902, l: isize, r: isize) {
+    pub fn effect(&self, cpu: &mut LR35902, l: u16, r: u16) {
         match self {
             FlagEffect::None => {}
             FlagEffect::Reset(flag) => cpu.register.set_flag(*flag, false),

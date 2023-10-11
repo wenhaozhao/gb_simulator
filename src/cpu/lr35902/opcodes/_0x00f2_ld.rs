@@ -1,6 +1,6 @@
 use crate::cpu::lr35902::LR35902;
 use crate::cpu::lr35902::opcode::{FlagEffect, Opcode, OpcodeMeta};
-use crate::cpu::lr35902::registers::Flag;
+use crate::cpu::lr35902::registers::{Flag, Register};
 
 static META: OpcodeMeta = OpcodeMeta {
     mnemonic: "LD",
@@ -32,9 +32,9 @@ impl Opcode for _0x00F2 {
 
     fn exec(&self, cpu: &mut LR35902) {
         
-let right = 0xFF00 | (cpu.register.get_c() as u16);
-let right = cpu.memory.borrow().get(right);
-cpu.register.set_a(right);
+let right = cpu.memory.borrow().get(0xFF00 | (cpu.register.get_u16(Register::C)));
+
+cpu.register.set_u8(Register::A, right);
 
     }
 }
