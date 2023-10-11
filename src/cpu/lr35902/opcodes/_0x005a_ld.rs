@@ -31,7 +31,9 @@ impl Opcode for _0x005A {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        let right = cpu.register.get_d();
+        
+let right = cpu.register.get_d();
 cpu.register.set_e(right);
+
     }
 }

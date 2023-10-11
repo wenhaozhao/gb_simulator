@@ -31,6 +31,9 @@ impl Opcode for _0x0026 {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+        
+let right = cpu.imm_u8();
+cpu.register.set_h(right);
+
     }
 }

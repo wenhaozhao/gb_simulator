@@ -32,6 +32,8 @@ impl Opcode for _0x00F8 {
 
     fn exec(&self, cpu: &mut LR35902) {
         
-        cpu.register.set_hl(right);
+
+cpu.register.set_hl(right);
+
     }
 }

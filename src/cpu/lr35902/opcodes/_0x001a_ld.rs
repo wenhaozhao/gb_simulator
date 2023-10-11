@@ -31,8 +31,10 @@ impl Opcode for _0x001A {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        let right = cpu.register.get_de();
+        
+let right = cpu.register.get_de();
 let right = cpu.memory.borrow().get(right);
 cpu.register.set_a(right);
+
     }
 }

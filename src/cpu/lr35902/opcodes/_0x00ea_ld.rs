@@ -34,5 +34,6 @@ impl Opcode for _0x00EA {
         let left = cpu.imm_u16();
 let right = cpu.register.get_a();
 cpu.memory.borrow_mut().set_u8(left, right);
+
     }
 }

@@ -31,8 +31,10 @@ impl Opcode for _0x00F2 {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        let right = 0xFF00 | (cpu.register.get_c() as u16);
+        
+let right = 0xFF00 | (cpu.register.get_c() as u16);
 let right = cpu.memory.borrow().get(right);
 cpu.register.set_a(right);
+
     }
 }

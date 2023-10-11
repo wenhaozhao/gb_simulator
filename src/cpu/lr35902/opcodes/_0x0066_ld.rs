@@ -31,6 +31,10 @@ impl Opcode for _0x0066 {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+        
+let right = cpu.register.get_hl();
+let right = cpu.memory.borrow().get(right);
+cpu.register.set_h(right);
+
     }
 }

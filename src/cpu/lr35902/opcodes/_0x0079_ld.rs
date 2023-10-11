@@ -31,7 +31,9 @@ impl Opcode for _0x0079 {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        let right = cpu.register.get_c();
+        
+let right = cpu.register.get_c();
 cpu.register.set_a(right);
+
     }
 }

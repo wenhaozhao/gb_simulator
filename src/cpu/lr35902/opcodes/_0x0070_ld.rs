@@ -31,6 +31,9 @@ impl Opcode for _0x0070 {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        todo!()
+        let left = 0xFF00 | (cpu.memory.borrow().get(cpu.register.get_b() as u16) as u16);
+let right = cpu.register.get_b();
+cpu.memory.borrow_mut().set_u8(left, right);
+
     }
 }

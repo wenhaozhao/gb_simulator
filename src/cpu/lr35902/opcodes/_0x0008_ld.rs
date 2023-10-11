@@ -34,5 +34,6 @@ impl Opcode for _0x0008 {
         let left = cpu.imm_u16();
 let right = cpu.register.get_sp();
 cpu.memory.borrow_mut().set_u16(left, right);
+
     }
 }

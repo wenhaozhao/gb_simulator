@@ -31,7 +31,9 @@ impl Opcode for _0x0011 {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        let right = cpu.imm_u16();
-        cpu.register.set_de(right);
+        
+let right = cpu.imm_u16();
+cpu.register.set_de(right);
+
     }
 }

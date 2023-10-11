@@ -31,7 +31,9 @@ impl Opcode for _0x002E {
     }
 
     fn exec(&self, cpu: &mut LR35902) {
-        let right = cpu.imm_u8();
+        
+let right = cpu.imm_u8();
 cpu.register.set_l(right);
+
     }
 }

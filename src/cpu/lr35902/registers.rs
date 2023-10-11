@@ -1,5 +1,7 @@
 use std::mem;
 
+use proc_macros::U16FieldAccessor;
+
 use crate::cpu::{get_hi, get_lo, set_hi, set_lo};
 
 /// ## Registers
@@ -14,6 +16,7 @@ use crate::cpu::{get_hi, get_lo, set_hi, set_lo};
 ///    PC  | - | - | Program Counter/Pointer
 /// #### [see pandoc](https://gbdev.io/pandocs/CPU_Registers_and_Flags.html)
 #[repr(C)]
+#[derive(U16FieldAccessor)]
 pub struct Registers {
     /// Accumulator & Flags
     af: u16,
@@ -40,15 +43,6 @@ impl Registers {
 
 /// General registers
 impl Registers {
-    #[inline]
-    pub fn get_af(&self) -> u16 {
-        self.af
-    }
-
-    #[inline]
-    pub fn set_af(&mut self, val: u16) {
-        self.af = val;
-    }
 
     #[inline]
     pub fn get_a(&self) -> u8 {
@@ -69,16 +63,9 @@ impl Registers {
     pub fn set_f(&mut self, val: u8) {
         set_lo(&mut self.af, val);
     }
+}
 
-    #[inline]
-    pub fn get_bc(&self) -> u16 {
-        self.bc
-    }
-
-    #[inline]
-    pub fn set_bc(&mut self, val: u16) {
-        self.bc = val;
-    }
+impl Registers {
 
     #[inline]
     pub fn get_b(&self) -> u8 {
@@ -99,16 +86,9 @@ impl Registers {
     pub fn set_c(&mut self, val: u8) {
         set_lo(&mut self.bc, val);
     }
+}
 
-    #[inline]
-    pub fn get_de(&self) -> u16 {
-        self.de
-    }
-
-    #[inline]
-    pub fn set_de(&mut self, val: u16) {
-        self.de = val;
-    }
+impl Registers {
 
     #[inline]
     pub fn get_d(&self) -> u8 {
@@ -129,16 +109,9 @@ impl Registers {
     pub fn set_e(&mut self, val: u8) {
         set_lo(&mut self.de, val);
     }
+}
 
-    #[inline]
-    pub fn get_hl(&self) -> u16 {
-        self.hl
-    }
-
-    #[inline]
-    pub fn set_hl(&mut self, val: u16) {
-        self.hl = val;
-    }
+impl Registers {
 
     #[inline]
     pub fn get_h(&self) -> u8 {
@@ -160,6 +133,7 @@ impl Registers {
         set_lo(&mut self.hl, val);
     }
 }
+
 
 ///
 /// ## The Flags Register (lower 8 bits of AF register)
@@ -216,116 +190,41 @@ impl Registers {
 }
 
 
-/// Control registers
-impl Registers {
-    /// Stack Pointer
-    #[inline]
-    pub fn get_sp(&self) -> u16 {
-        self.sp
+#[cfg(test)]
+mod tests {
+    use crate::cpu::lr35902::registers::Registers;
+
+    #[test]
+    pub fn test_bc() {
+        let mut registers: Registers = Default::default();
+        registers.set_bc(0x0001);
+        let bc = registers.get_bc();
+        assert_eq!(bc, 0x0001);
+        registers.set_bc(0x0002);
+        let bc = registers.get_bc();
+        assert_eq!(bc, 0x0002);
     }
 
-    #[inline]
-    pub fn set_sp(&mut self, val: u16) {
-        self.sp = val;
+    #[test]
+    pub fn test_bc_lo() {
+        let mut registers: Registers = Default::default();
+        registers.set_bc(0x1001);
+        registers.set_bc_lo(0x02);
+        let bc = registers.get_bc();
+        assert_eq!(bc, 0x1002);
+        let bc_lo = registers.get_bc_lo();
+        assert_eq!(bc_lo, 0x02);
     }
 
-    /// Program Counter/Pointer
-    #[inline]
-    pub fn get_pc(&self) -> u16 {
-        self.pc
+    #[test]
+    pub fn test_bc_hi() {
+        let mut registers: Registers = Default::default();
+        registers.set_bc(0x1001);
+        registers.set_bc_hi(0x20);
+        let bc = registers.get_bc();
+        assert_eq!(bc, 0x2001);
+        let bc_lo = registers.get_bc_hi();
+        assert_eq!(bc_lo, 0x20);
     }
 
-    #[inline]
-    pub fn set_pc(&mut self, val: u16) {
-        self.pc = val;
-    }
-}
-
-impl Registers {
-    #[inline]
-    pub fn sp_incr(&mut self) {
-        self.sp += 1;
-    }
-
-    #[inline]
-    pub fn sp_decr(&mut self) {
-        self.sp -= 1;
-    }
-}
-
-impl Registers {
-    #[inline]
-    pub fn pc_incr_by(&mut self, by: u16) {
-        self.pc += by;
-    }
-
-    #[inline]
-    pub fn pc_get_and_incr_by(&mut self, by: u16) -> u16 {
-        let before = self.pc;
-        self.pc_incr_by(by);
-        before
-    }
-
-    #[inline]
-    pub fn pc_incr(&mut self) {
-        self.pc_incr_by(0x0001u16);
-    }
-
-    #[inline]
-    pub fn pc_get_and_incr(&mut self) -> u16 {
-        let before = self.pc;
-        self.pc_incr();
-        before
-    }
-
-    #[inline]
-    pub fn pc_incr_by_and_get(&mut self, by: u16) -> u16 {
-        self.pc_incr_by(by);
-        self.pc
-    }
-
-    #[inline]
-    pub fn pc_incr_and_get(&mut self) -> u16 {
-        self.pc_incr_by_and_get(0x0001u16);
-        self.pc
-    }
-}
-
-
-impl Registers {
-    #[inline]
-    pub fn pc_decr_by(&mut self, by: u16) {
-        self.pc -= by;
-    }
-
-    #[inline]
-    pub fn pc_get_and_decr_by(&mut self, by: u16) -> u16 {
-        let before = self.pc;
-        self.pc_decr_by(by);
-        before
-    }
-
-    #[inline]
-    pub fn pc_decr(&mut self) {
-        self.pc_decr_by(0x0001u16);
-    }
-
-    #[inline]
-    pub fn pc_get_and_decr(&mut self) -> u16 {
-        let before = self.pc;
-        self.pc_decr();
-        before
-    }
-
-    #[inline]
-    pub fn pc_decr_by_and_get(&mut self, by: u16) -> u16 {
-        self.pc_decr_by(by);
-        self.pc
-    }
-
-    #[inline]
-    pub fn pc_decr_and_get(&mut self) -> u16 {
-        self.pc_decr_by_and_get(0x0001u16);
-        self.pc
-    }
 }
