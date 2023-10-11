@@ -33,7 +33,7 @@ impl Opcode for _0x0056 {
     fn exec(&self, cpu: &mut LR35902) {
         
 let right = cpu.memory.borrow().get(cpu.register.get_u16(Register::HL));
-
+// no flag effect
 cpu.register.set_u8(Register::D, right);
 
     }

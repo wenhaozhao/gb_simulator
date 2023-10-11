@@ -33,7 +33,7 @@ impl Opcode for _0x004C {
     fn exec(&self, cpu: &mut LR35902) {
         
 let right = cpu.register.get_u8(Register::H);
-
+// no flag effect
 cpu.register.set_u8(Register::C, right);
 
     }

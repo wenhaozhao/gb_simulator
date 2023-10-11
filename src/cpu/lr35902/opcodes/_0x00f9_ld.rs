@@ -33,7 +33,7 @@ impl Opcode for _0x00F9 {
     fn exec(&self, cpu: &mut LR35902) {
         
 let right = cpu.register.get_u16(Register::HL);
-
+// no flag effect
 cpu.register.set_u16(Register::SP, right);
 
     }
