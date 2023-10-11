@@ -34,3 +34,20 @@ pub enum FlagEffect {
     /// 相应的标志将受到其功能的预期影响
     Fun(Flag),
 }
+
+impl FlagEffect {
+    pub fn effect(&self, cpu: &mut LR35902, l: isize, r: isize) {
+        match self {
+            FlagEffect::None => {}
+            FlagEffect::Reset(flag) => cpu.register.set_flag(*flag, false),
+            FlagEffect::Set(flag) => cpu.register.set_flag(*flag, true),
+            FlagEffect::Fun(flag) => {
+                match flag {
+                    Flag::H => cpu.register.set_flag(Flag::H, (l & 0x000f) + (r & 0x000f) > 0x000f),
+                    Flag::C => cpu.register.set_flag(Flag::C, (l & 0x00ff) + (r & 0x00ff) > 0x00ff),
+                    _ => {}
+                }
+            }
+        }
+    }
+}
