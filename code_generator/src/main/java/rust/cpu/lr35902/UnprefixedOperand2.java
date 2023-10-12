@@ -12,9 +12,9 @@ public enum UnprefixedOperand2 implements Operand2 {
         @Override
         public CodeInfo code(Opcode opcode) {
             return switch (opcode.operand2()) {
-                case "d8" -> CodeInfo.of(STR."let right = cpu.imm_u8();", RetType.u8);
-                case "r8" -> CodeInfo.of(STR."let right = cpu.imm_u8() as i8;", RetType.i8);
-                case "a16", "d16" -> CodeInfo.of("let right = cpu.imm_u16();", RetType.u16);
+                case "d8" -> new CodeInfo(STR."let right = cpu.imm_u8();", RetType.u8);
+                case "r8" -> new CodeInfo(STR."let right = cpu.imm_u8() as i8;", RetType.i8);
+                case "a16", "d16" -> new CodeInfo("let right = cpu.imm_u16();", RetType.u16);
                 default -> super.code(opcode);
             };
         }
@@ -23,10 +23,10 @@ public enum UnprefixedOperand2 implements Operand2 {
         @Override
         public CodeInfo code(Opcode opcode) {
             return switch (opcode.operand2()) {
-                case "(a8)" -> CodeInfo.of(STR."""
+                case "(a8)" -> new CodeInfo(STR."""
                         let right = cpu.imm_u8() as u16;
                         let right = cpu.memory.borrow().get(0xFF00 | right);""", RetType.u8);
-                case "(a16)" -> CodeInfo.of(STR."""
+                case "(a16)" -> new CodeInfo(STR."""
                         let right = cpu.imm_u16();
                         let right = cpu.memory.borrow().get(right);""", RetType.u8);
                 default -> super.code(opcode);
@@ -38,7 +38,7 @@ public enum UnprefixedOperand2 implements Operand2 {
         public CodeInfo code(Opcode opcode) {
             var register = opcode.operand2();
             if (register.equals("SP+r8")) {
-                return CodeInfo.of(
+                return new CodeInfo(
                         STR."""
                                 let v1 = cpu.register.get_u16(Register::SP);
                                 let v2 = cpu.imm_u8() as i8 as i16 as u16;
@@ -49,9 +49,9 @@ public enum UnprefixedOperand2 implements Operand2 {
             } else {
                 return switch (register.length()) {
                     case 1 ->
-                            CodeInfo.of(STR. "let right = cpu.register.get_u8(Register::\{ register });" , RetType.u8);
+                            new CodeInfo(STR. "let right = cpu.register.get_u8(Register::\{ register });" , RetType.u8);
                     case 2 ->
-                            CodeInfo.of(STR. "let right = cpu.register.get_u16(Register::\{ register });" , RetType.u16);
+                            new CodeInfo(STR. "let right = cpu.register.get_u16(Register::\{ register });" , RetType.u16);
                     default -> super.code(opcode);
                 };
             }
@@ -78,7 +78,7 @@ public enum UnprefixedOperand2 implements Operand2 {
             if (register.length() == 1) {
                 code = STR. "0xFF00 | (\{ code })" ;
             }
-            return CodeInfo.of(STR. "let right = cpu.memory.borrow().get(\{ code });" , RetType.u8);
+            return new CodeInfo(STR. "let right = cpu.memory.borrow().get(\{ code });" , RetType.u8);
         }
     },
     adr_reg_16_ext(new MetaType[]{MetaType.register, MetaType.addr}, new String[]{"(HL+)", "(HL-)"}),//todo

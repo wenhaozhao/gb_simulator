@@ -18,24 +18,24 @@ public class LD implements Ins {
         var flagEffects = opcode.flagEffects();
         for (var i = 0; i < flagEffects.length; ++i) {
             var flagEffect = flagEffects[i];
-            var flagsItem = flagEffect.getType().effect(opcode, flagEffect);
-            if (StringUtils.isNotBlank(flagsItem)) {
+            String item;
+            if (StringUtils.isNotBlank(item = flagEffect.getType().effect(opcode, flagEffect))) {
                 flags = STR. """
                     \{ flags }
-                    \{ flagsItem } """ ;
+                    \{ item } """ ;
             }
         }
         String save;
         if (operand1.metaTypeMatch(MetaType.addr)) {
-            save = STR. "cpu.memory.borrow_mut().set_\{ operand2.code(opcode).retType() }(left, right);" ;
+            save = STR. "cpu.memory.borrow_mut().set_\{ operand2.code(opcode).getRetType() }(left, right);" ;
         } else if (operand1.metaTypeMatch(MetaType.register)) {
-            save = STR. "cpu.register.set_\{ operand2.code(opcode).retType() }(Register::\{ opcode.operand1() }, right);" ;
+            save = STR. "cpu.register.set_\{ operand2.code(opcode).getRetType() }(Register::\{ opcode.operand1() }, right);" ;
         } else {
             throw new IllegalArgumentException(STR. "Unsupported \{ operand1 } on LD" );
         }
         return STR. """
-                \{ operand1.code(opcode).code() }
-                \{ operand2.code(opcode).code() }
+                \{ operand1.code(opcode).getCode() }
+                \{ operand2.code(opcode).getCode() }
                 \{ StringUtils.isBlank(flags) ? "// no flag effect" : flags }
                 \{ save }
                 self.meta.cycles[0]""" ;

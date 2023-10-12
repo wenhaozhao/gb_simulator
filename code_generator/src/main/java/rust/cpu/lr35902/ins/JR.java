@@ -14,16 +14,16 @@ public class JR implements Ins{
         var operand1 = opcode.$operand1().orElseThrow(() -> new IllegalArgumentException(opcode.operand1()));
         if (StringUtils.isBlank(opcode.operand2())) {
             return STR."""
-            \{ operand1.code(opcode).getT1() }
-            cpu.register.pc_incr_by_\{operand1.code(opcode).getT2()}(left);
+            \{ operand1.code(opcode).getCode() }
+            cpu.register.pc_incr_by_\{operand1.code(opcode).getRetType()}(left);
             self.meta.cycles[0]""";
         }else {
             var operand2 = opcode.$operand2().orElseThrow(() -> new IllegalArgumentException(opcode.operand2()));
             return STR."""
-                \{ operand1.code(opcode).getT1() }
+                \{ operand1.code(opcode).getCode() }
                 if left {
-                    \{ operand2.code(opcode).getT1() }
-                    cpu.register.pc_incr_by_\{operand2.code(opcode).getT2()}(right);
+                    \{ operand2.code(opcode).getCode() }
+                    cpu.register.pc_incr_by_\{operand2.code(opcode).getRetType()}(right);
                     return self.meta.cycles[0];
                 }
                 self.meta.cycles[1]""";

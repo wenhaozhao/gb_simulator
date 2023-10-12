@@ -1,9 +1,20 @@
 package rust.cpu.lr35902;
 
-public record CodeInfo(String code, RetType retType) {
+public class CodeInfo {
 
-    static CodeInfo of(String code, RetType retType) {
-        return new CodeInfo(code, retType);
+    final String code;
+    final RetType retType;
+
+    public CodeInfo(String code, RetType retType) {
+        this.code = code;
+        this.retType = retType;
     }
 
+    public String getCode() {
+        return code;
+    }
+
+    public RetType getRetType() {
+        return retType;
+    }
 }
