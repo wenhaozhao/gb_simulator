@@ -7,7 +7,6 @@ import java.util.stream.Stream;
 
 public interface Ins {
 
-    String[]FlagEffectIndex={"Z","N","H","C"};
     default String fnExec(Opcode opcode) {
         return STR. """
                 fn exec(&self, cpu: &mut LR35902) -> u8 {

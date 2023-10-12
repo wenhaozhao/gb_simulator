@@ -25,6 +25,10 @@ public class FlagEffect {
         return flag;
     }
 
+    public String getFullFlag() {
+        return STR."Flag::\{this.getFlag()}";
+    }
+
     public Type getType() {
         return type;
     }
@@ -41,25 +45,47 @@ public class FlagEffect {
         Reset() {
             @Override
             public String toString(FlagEffect flagEffect) {
-                return STR. "FlagEffect::Reset(Flag::\{ flagEffect.getFlag() })" ;
+                return STR. "FlagEffect::Reset(\{ flagEffect.getFullFlag() })" ;
+            }
+
+            @Override
+            public String effect(Opcode opcode, FlagEffect flagEffect){
+                return STR. "cpu.register.set_flag(\{flagEffect.getFullFlag()}, false);";
             }
         },
         /// 已设置
         Set() {
             @Override
             public String toString(FlagEffect flagEffect) {
-                return STR. "FlagEffect::Set(Flag::\{ flagEffect.getFlag() })" ;
+                return STR. "FlagEffect::Set(\{ flagEffect.getFullFlag() })" ;
+            }
+
+            @Override
+            public String effect(Opcode opcode, FlagEffect flagEffect){
+                return STR. "cpu.register.set_flag(\{flagEffect.getFullFlag()}, true);";
             }
         },
         /// 相应的标志将受到其功能的预期影响
         Fun() {
             @Override
             public String toString(FlagEffect flagEffect) {
-                return STR. "FlagEffect::Fun(Flag::\{ flagEffect.getFlag() })" ;
+                return STR. "FlagEffect::Fun(\{ flagEffect.getFullFlag() })" ;
+            }
+
+            @Override
+            public String effect(Opcode opcode, FlagEffect flagEffect){
+
+
+
+                return STR. "cpu.register.set_flag(\{flagEffect.getFullFlag()}, true);";
             }
         };
 
         public abstract String toString(FlagEffect flagEffect);
+
+        public String effect(Opcode opcode, FlagEffect flagEffect){
+            return "";
+        }
     }
 
     @Override

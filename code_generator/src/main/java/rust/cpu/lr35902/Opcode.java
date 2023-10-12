@@ -6,7 +6,6 @@ import org.jetbrains.annotations.NotNull;
 import rust.cpu.lr35902.ins.Ins;
 
 import java.util.Optional;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -158,22 +157,22 @@ impl Opcode for \{ this.structDef() } {
                                 """ ;
     }
 
-    public Optional<? extends OperandType.Operand1> $operand1() {
-        Optional<? extends OperandType.Operand1> $operand1;
+    public Optional<? extends Operand1> $operand1() {
+        Optional<? extends Operand1> $operand1;
         if (this.cbprefixed()) {
-            $operand1 = OperandType.CBPrefixedOperand1.parse(this.operand1());
+            $operand1 = CBPrefixedOperand1.parse(this.operand1());
         } else {
-            $operand1 = OperandType.UnprefixedOperand1.parse(this.operand1());
+            $operand1 = UnprefixedOperand1.parse(this.operand1());
         }
         return $operand1;
     }
 
-    public Optional<? extends OperandType.Operand2> $operand2() {
-        Optional<? extends OperandType.Operand2> $operand2;
+    public Optional<? extends Operand2> $operand2() {
+        Optional<? extends Operand2> $operand2;
         if (this.cbprefixed()) {
-            $operand2 = OperandType.CBPrefixedOperand2.parse(this.operand2());
+            $operand2 = CBPrefixedOperand2.parse(this.operand2());
         } else {
-            $operand2 = OperandType.UnprefixedOperand2.parse(this.operand2());
+            $operand2 = UnprefixedOperand2.parse(this.operand2());
         }
         return $operand2;
     }
