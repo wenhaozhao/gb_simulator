@@ -2,13 +2,18 @@ package rust.cpu.lr35902.ins;
 
 import org.apache.commons.lang3.StringUtils;
 import rust.cpu.lr35902.Opcode;
+import rust.cpu.lr35902.OptType;
 
 import java.util.stream.Stream;
 
 public interface Ins {
 
     default String fnExec(Opcode opcode) {
-        return STR."todo!()";
+        return STR. """
+                ///
+                    fn exec(&self, cpu: &mut LR35902) -> u8 {
+                        todo!()
+                    }""" ;
     }
 
     class Util {

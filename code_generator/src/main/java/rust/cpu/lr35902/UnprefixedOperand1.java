@@ -10,39 +10,53 @@ public enum UnprefixedOperand1 implements Operand1 {
     num(new MetaType[]{MetaType.num}, new String[]{"d8", "r8", "a16"}) {
         // d8 立即数 , r8 符号立即数
         @Override
-        public CodeInfo code(Opcode opcode) {
+        public CodeInfo code(Opcode opcode, OptType optType) {
             return switch (opcode.operand1()) {
                 case "d8" -> new CodeInfo(STR."let left = cpu.imm_u8();", RetType.u8);
                 case "r8" -> new CodeInfo(STR."let left = cpu.imm_u8() as i8;", RetType.i8);
                 case "a16" -> new CodeInfo(STR."let left = cpu.imm_u16();", RetType.u16);
-                default -> super.code(opcode);
+                default -> super.code(opcode, optType);
             };
         }
     },
 
     adr_num(new MetaType[]{MetaType.num, MetaType.addr}, new String[]{"(a8)", "(a16)"}) {
         @Override
-        public CodeInfo code(Opcode opcode) {
+        public CodeInfo code(Opcode opcode, OptType optType) {
             return switch (opcode.operand1()) {
                 case "(a8)" -> new CodeInfo(STR."let left = 0xFF00 | (cpu.imm_u8() as u16);", RetType.u16);
                 case "(a16)" -> new CodeInfo(STR."let left = cpu.imm_u16();", RetType.u16);
-                default -> super.code(opcode);
+                default -> super.code(opcode, optType);
             };
         }
     },
     /**
      * H/C可能是flag需要看具体的指令
      */
-    reg(new MetaType[]{MetaType.register}, new String[]{"AF", "BC", "DE", "HL", "A", "B", "C", "D", "E", "H", "L", "SP"}),//todo
+    reg(new MetaType[]{MetaType.register}, new String[]{"AF", "BC", "DE", "HL", "A", "B", "C", "D", "E", "H", "L", "SP"}){
+        @Override
+        public CodeInfo code(Opcode opcode, OptType optType) {
+            var register = opcode.operand1();
+            return switch (optType) {
+                case _3 ->switch (register.length()) {
+                    case 1 -> new CodeInfo(STR. "let left = cpu.register.get_u8(Register::\{ register });" , RetType.u8);
+                    case 2 ->
+                            new CodeInfo(STR. "let left = cpu.register.get_u16(Register::\{ register });" , RetType.u16);
+                    default -> super.code(opcode, optType);
+                };
+                default -> super.code(opcode,optType);
+            };
+        }
+    },//todo
     reg_flag(new MetaType[]{MetaType.register, MetaType.flag, MetaType.condition}, new String[]{"ZZ", "NZ", "CC", "NC"}) {
 
         final Pattern pattern = Pattern.compile("^(\\w)(\\w)$");
 
         @Override
-        public CodeInfo code(Opcode opcode) {
+        public CodeInfo code(Opcode opcode, OptType optType) {
             var matches = pattern.matcher(opcode.operand1());
             if (!matches.find()) {
-                return super.code(opcode);
+                return super.code(opcode, optType);
             }
             var neg = matches.group(1).equals("N");
             var flagReg = matches.group(2);
@@ -53,10 +67,10 @@ public enum UnprefixedOperand1 implements Operand1 {
         final Pattern pattern = Pattern.compile("^\\((\\w{1,2})([+-]?)\\)$");
 
         @Override
-        public CodeInfo code(Opcode opcode) {
+        public CodeInfo code(Opcode opcode, OptType optType) {
             var matches = pattern.matcher(opcode.operand1());
             if (!matches.find()) {
-                return super.code(opcode);
+                return super.code(opcode, optType);
             }
             var register = matches.group(1);
             var ext = matches.group(2);
@@ -74,14 +88,14 @@ public enum UnprefixedOperand1 implements Operand1 {
     // 0xc7 - v
     rst(new MetaType[]{MetaType.addr}, new String[]{"00H", "08H", "10H", "18H", "20H", "28H", "30H", "38H"}) {
         @Override
-        public CodeInfo code(Opcode opcode) {
+        public CodeInfo code(Opcode opcode, OptType optType) {
             return new CodeInfo(STR. "let left = \{ opcode.operand1() };" , RetType.u16);
         }
     },
     None(new MetaType[]{}, new String[0]) {
         @Override
-        public CodeInfo code(Opcode opcode) {
-            return super.code(opcode);
+        public CodeInfo code(Opcode opcode, OptType optType) {
+            return super.code(opcode, optType);
         }
     };
 

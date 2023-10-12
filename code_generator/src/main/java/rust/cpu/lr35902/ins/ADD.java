@@ -1,9 +1,7 @@
 package rust.cpu.lr35902.ins;
 
-import org.apache.commons.lang3.StringUtils;
 import rust.cpu.lr35902.Opcode;
-
-import java.util.stream.Stream;
+import rust.cpu.lr35902.OptType;
 
 /**
  * var flags = "";
@@ -52,7 +50,7 @@ public class ADD implements Ins {
         };
         return STR. """
                 fn exec(&self, cpu: &mut LR35902) -> u8 {
-                    \{ operand1.code(opcode).getCode() }
+                    \{ operand1.code(opcode, OptType._3).getCode() }
                     \{ operand2.code(opcode).getCode() }
                     \{ body }
                     self.meta.cycles[0]

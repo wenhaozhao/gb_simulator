@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 import org.apache.commons.lang3.StringUtils;
 import rust.cpu.lr35902.MetaType;
 import rust.cpu.lr35902.Opcode;
+import rust.cpu.lr35902.OptType;
 
 public class LD implements Ins {
 
@@ -24,7 +25,7 @@ public class LD implements Ins {
         }
         return STR. """
                 fn exec(&self, cpu: &mut LR35902) -> u8 {
-                    \{ operand1.code(opcode).getCode() }
+                    \{ operand1.code(opcode, OptType._2).getCode() }
                     \{ operand2.code(opcode).getCode() }
                     \{ save }
                     self.meta.cycles[0]
