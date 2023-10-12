@@ -2,3 +2,4 @@ target
 .idea
 .vscode
 
+src/cpu/lr35902/opcodes
