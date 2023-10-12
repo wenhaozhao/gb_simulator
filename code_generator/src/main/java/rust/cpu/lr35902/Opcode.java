@@ -3,6 +3,7 @@ package rust.cpu.lr35902;
 import com.alibaba.fastjson2.JSON;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import rust.cpu.lr35902.ins.Ins;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -151,87 +152,9 @@ impl Opcode for \{ this.structDef() } {
         self.meta
     }
 
-    fn exec(&self, cpu: &mut LR35902) -> u8 {
-        \{ this.fnExec() }
-    }
+    \{Ins.Util.parse(this).fnExec(this)}
 }
                                 """ ;
-    }
-
-    private String fnExec() {
-        var content = switch (this.mnemonic().toUpperCase()) {
-            case "LD" -> ld();
-            case "JR" -> jr();
-            default -> null;
-        };
-        if (StringUtils.isBlank(content)) {
-            content = "todo!()";
-        }
-        return content;
-    }
-
-    /**
-     * 相对跳转
-     */
-    private String jr(){
-        // 单操作数
-        var operand1 = this.$operand1().orElseThrow(() -> new IllegalArgumentException(this.operand1()));
-        if (StringUtils.isBlank(this.operand2())) {
-            return STR."""
-            \{ operand1.code(this).getT1() }
-            cpu.register.pc_incr_by_\{operand1.code(this).getT2()}(left);
-            self.meta.cycles[0]""";
-        }else {
-            var operand2 = this.$operand2().orElseThrow(() -> new IllegalArgumentException(this.operand2()));
-            return STR."""
-                \{ operand1.code(this).getT1() }
-                if left {
-                    \{ operand2.code(this).getT1() }
-                    cpu.register.pc_incr_by_\{operand2.code(this).getT2()}(right);
-                    return self.meta.cycles[0];
-                }
-                self.meta.cycles[1]""";
-        }
-    }
-
-    private String ld() {
-        if (StringUtils.isBlank(this.operand1()) || StringUtils.isBlank(this.operand2())) {
-            throw new IllegalArgumentException(STR. "operand cannot be blank: \{ JSON.toJSONString(this) }" );
-        }
-        var operand1 = this.$operand1().orElseThrow(() -> new IllegalArgumentException(this.operand1()));
-        var operand2 = this.$operand2().orElseThrow(() -> new IllegalArgumentException(this.operand2()));
-        var flagEffectCode = "";
-        var flagEffects = this.flagEffects();
-        for (var i = 0; i < flagEffects.length; ++i) {
-            var flagEffect = flagEffects[i];
-            var flagEffectCodeItem = switch (flagEffect.getType()) {
-                case Reset -> STR. "self.meta.flags[\{ i }].effect(cpu, 0, 0);" ;
-                case Set -> STR. "self.meta.flags[\{ i }].effect(cpu, 0, 0);" ;
-                case Fun -> STR. "self.meta.flags[\{ i }].effect(cpu, flag_effect_l, flag_effect_r);" ;
-                default -> "";
-            };
-            if (StringUtils.isNotBlank(flagEffectCodeItem)) {
-                flagEffectCode = STR. """
-                    \{ flagEffectCode }
-                    \{ flagEffectCodeItem } """ ;
-            }
-        }
-        Supplier<String> supplier = () -> {
-            if (operand1.metaTypeMatch(OperandType.MetaType.addr)) {
-                return STR. "cpu.memory.borrow_mut().set_\{ operand2.code(this).getT2() }(left, right);" ;
-            }
-            if (operand1.metaTypeMatch(OperandType.MetaType.register)) {
-                return STR. "cpu.register.set_\{ operand2.code(this).getT2() }(Register::\{ this.operand1() }, right);" ;
-            }
-            // flags
-            throw new IllegalArgumentException(STR. "Unsupported \{ operand1 } on LD" );
-        };
-        return STR. """
-                \{ operand1.code(this).getT1() }
-                \{ operand2.code(this).getT1() }
-                \{ StringUtils.isBlank(flagEffectCode)?"// no flag effect":flagEffectCode }
-                \{ supplier.get() }
-                self.meta.cycles[0]""" ;
     }
 
     public Optional<? extends OperandType.Operand1> $operand1() {
