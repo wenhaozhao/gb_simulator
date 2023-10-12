@@ -21,9 +21,9 @@ public class LD implements Ins {
         for (var i = 0; i < flagEffects.length; ++i) {
             var flagEffect = flagEffects[i];
             var flagEffectCodeItem = switch (flagEffect.getType()) {
-                case Reset -> STR. "self.meta.flags[\{ i }].effect(cpu, 0, 0);" ;
-                case Set -> STR. "self.meta.flags[\{ i }].effect(cpu, 0, 0);" ;
-                case Fun -> STR. "self.meta.flags[\{ i }].effect(cpu, flag_effect_l, flag_effect_r);" ;
+                case Reset -> STR. "self.meta.flags[\{ FlagEffectIndex[i] }].effect(cpu, 0, 0);" ;
+                case Set -> STR. "self.meta.flags[\{ FlagEffectIndex[i] }].effect(cpu, 0, 0);" ;
+                case Fun -> STR. "self.meta.flags[\{ FlagEffectIndex[i] }].effect(cpu, flag_effect_l, flag_effect_r);" ;
                 default -> "";
             };
             if (StringUtils.isNotBlank(flagEffectCodeItem)) {

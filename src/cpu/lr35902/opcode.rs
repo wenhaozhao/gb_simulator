@@ -24,6 +24,13 @@ pub trait Opcode: Send + Sync {
     fn exec(&self, cpu: &mut LR35902) -> u8;
 }
 
+pub enum FlagEffectIndex {
+    Z = 0x00isize,
+    N = 0x01isize,
+    H = 0x02isize,
+    C = 0x03isize,
+}
+
 pub enum FlagEffect {
     /// 无影响
     None,

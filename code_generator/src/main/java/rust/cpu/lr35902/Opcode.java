@@ -122,6 +122,7 @@ public record Opcode(
         return STR. """
 use crate::cpu::lr35902::LR35902;
 use crate::cpu::lr35902::opcode::{FlagEffect, Opcode, OpcodeMeta};
+use crate::cpu::lr35902::opcode::FlagEffectIndex::{C, H, N, Z};
 use crate::cpu::lr35902::registers::{Flag, Register};
 
 static META: OpcodeMeta = OpcodeMeta {
