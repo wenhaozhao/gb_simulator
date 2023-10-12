@@ -1,0 +1,55 @@
+{
+  "unprefixed": [
+    "ADC",
+    "ADD",
+    "AND",
+    "CALL",
+    "CCF",
+    "CP",
+    "CPL",
+    "DAA",
+    "DEC",
+    "DI",
+    "EI",
+    "HALT",
+    "INC",
+    "JP",
+    "JR",
+    "LD",
+    "LDH",
+    "NOP",
+    "OR",
+    "POP",
+    "PREFIX",
+    "PUSH",
+    "RET",
+    "RETI",
+    "RLA",
+    "RLCA",
+    "RRA",
+    "RRCA",
+    "RST",
+    "SBC",
+    "SCF",
+    "STOP",
+    "SUB",
+    "XOR"
+  ],
+  "cbprefixed": [
+    "BIT",
+    "RES",
+    "RL",
+    "RLC",
+    "RR",
+    "RRC",
+    "SET",
+    "SLA",
+    "SRA",
+    "SRL",
+    "SWAP"
+  ]
+}
+
+
+
+
