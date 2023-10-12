@@ -44,7 +44,7 @@ pub trait Memory {
 }
 
 #[cfg(test)]
-mod memory_tests {
+pub mod tests {
     use crate::mmu::Memory;
 
     pub struct TestMemory {
@@ -61,11 +61,11 @@ mod memory_tests {
 
     impl Memory for TestMemory {
         fn get(&self, i: u16) -> u8 {
-            todo!()
+            self.mem[i as usize]
         }
 
         fn set(&mut self, i: u16, v: u8) {
-            todo!()
+            self.mem[i as usize] = v;
         }
     }
 }
