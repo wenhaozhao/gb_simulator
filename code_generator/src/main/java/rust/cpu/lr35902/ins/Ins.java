@@ -8,13 +8,6 @@ import java.util.stream.Stream;
 public interface Ins {
 
     default String fnExec(Opcode opcode) {
-        return STR. """
-                fn exec(&self, cpu: &mut LR35902) -> u8 {
-                    \{ this.fnExecContent(opcode) }
-                }""" ;
-    }
-
-    default String fnExecContent(Opcode opcode) {
         return STR."todo!()";
     }
 

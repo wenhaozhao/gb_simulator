@@ -6,28 +6,33 @@ import rust.cpu.lr35902.Opcode;
 /**
  * 相对跳转
  */
-public class JR implements Ins{
+public class JR implements Ins {
 
     @Override
-    public String fnExecContent(Opcode opcode) {
-// 单操作数
+    public String fnExec(Opcode opcode) {
+        // 单操作数
         var operand1 = opcode.$operand1().orElseThrow(() -> new IllegalArgumentException(opcode.operand1()));
+        String body;
         if (StringUtils.isBlank(opcode.operand2())) {
-            return STR."""
+            body = STR. """
             \{ operand1.code(opcode).getCode() }
-            cpu.register.pc_incr_by_\{operand1.code(opcode).getRetType()}(left);
-            self.meta.cycles[0]""";
-        }else {
+            cpu.register.pc_incr_by_\{ operand1.code(opcode).getRetType() }(left);
+            self.meta.cycles[0]""" ;
+        } else {
             var operand2 = opcode.$operand2().orElseThrow(() -> new IllegalArgumentException(opcode.operand2()));
-            return STR."""
+            body = STR. """
                 \{ operand1.code(opcode).getCode() }
                 if left {
                     \{ operand2.code(opcode).getCode() }
-                    cpu.register.pc_incr_by_\{operand2.code(opcode).getRetType()}(right);
+                    cpu.register.pc_incr_by_\{ operand2.code(opcode).getRetType() }(right);
                     return self.meta.cycles[0];
                 }
-                self.meta.cycles[1]""";
+                self.meta.cycles[1]""" ;
         }
+        return STR. """
+                fn exec(&self, cpu: &mut LR35902) -> u8 {
+                    \{ body }
+                }""" ;
     }
 
 }

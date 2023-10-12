@@ -8,23 +8,12 @@ import rust.cpu.lr35902.Opcode;
 public class LD implements Ins {
 
     @Override
-    public String fnExecContent(Opcode opcode) {
+    public String fnExec(Opcode opcode) {
         if (StringUtils.isBlank(opcode.operand1()) || StringUtils.isBlank(opcode.operand2())) {
             throw new IllegalArgumentException(STR. "operand cannot be blank: \{ JSON.toJSONString(opcode) }" );
         }
         var operand1 = opcode.$operand1().orElseThrow(() -> new IllegalArgumentException(opcode.operand1()));
         var operand2 = opcode.$operand2().orElseThrow(() -> new IllegalArgumentException(opcode.operand2()));
-        var flags = "";
-        var flagEffects = opcode.flagEffects();
-        for (var i = 0; i < flagEffects.length; ++i) {
-            var flagEffect = flagEffects[i];
-            String item;
-            if (StringUtils.isNotBlank(item = flagEffect.getType().effect(opcode, flagEffect))) {
-                flags = STR. """
-                    \{ flags }
-                    \{ item } """ ;
-            }
-        }
         String save;
         if (operand1.metaTypeMatch(MetaType.addr)) {
             save = STR. "cpu.memory.borrow_mut().set_\{ operand2.code(opcode).getRetType() }(left, right);" ;
@@ -34,10 +23,12 @@ public class LD implements Ins {
             throw new IllegalArgumentException(STR. "Unsupported \{ operand1 } on LD" );
         }
         return STR. """
-                \{ operand1.code(opcode).getCode() }
-                \{ operand2.code(opcode).getCode() }
-                \{ StringUtils.isBlank(flags) ? "// no flag effect" : flags }
-                \{ save }
-                self.meta.cycles[0]""" ;
+                fn exec(&self, cpu: &mut LR35902) -> u8 {
+                    \{ operand1.code(opcode).getCode() }
+                    \{ operand2.code(opcode).getCode() }
+                    \{ save }
+                    self.meta.cycles[0]
+                }""" ;
     }
+
 }

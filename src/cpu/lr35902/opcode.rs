@@ -41,14 +41,3 @@ pub enum FlagEffect {
     /// 相应的标志将受到其功能的预期影响
     Fun(Flag),
 }
-
-impl FlagEffect {
-    pub fn effect(&self, cpu: &mut LR35902, fv: bool) {
-        match self {
-            FlagEffect::Reset(flag) => cpu.register.set_flag(*flag, false),
-            FlagEffect::Set(flag) => cpu.register.set_flag(*flag, true),
-            FlagEffect::Fun(flag) => cpu.register.set_flag(*flag, fv),
-            FlagEffect::None => {}
-        }
-    }
-}
