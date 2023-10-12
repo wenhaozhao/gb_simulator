@@ -35,7 +35,7 @@ impl Opcode for _0x0030 {
 if left {
     let right = cpu.imm_u8() as i8;
     cpu.register.pc_incr_by_i8(right);
-    self.meta.cycles[0]
+    return self.meta.cycles[0];
 }
 self.meta.cycles[1]
     }
