@@ -1,11 +1,11 @@
-target
-.idea
-.vscode
+/target
+/.idea
+/.vscode
 
-proc_macros/target
+/proc_macros/target
 
-code_generator/target
-code_generator/.idea
-code_generator/.vscode
+/code_generator/target
+/code_generator/.idea
+/code_generator/.vscode
 
 
