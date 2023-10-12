@@ -40,9 +40,11 @@ public enum UnprefixedOperand2 implements Operand2 {
             if (register.equals("SP+r8")) {
                 return new CodeInfo(
                         STR."""
-                                let v1 = cpu.register.get_u16(Register::SP);
-                                let v2 = cpu.imm_u8() as i8 as i16 as u16;
-                                let right = v1.wrapping_add(v2);
+                                let right1 = cpu.register.get_u16(Register::SP);
+                                let right2 = cpu.imm_u8() as i8 as i16 as u16;
+                                        cpu.register.set_flag(Flag::H, (l & 0x000f) + (r & 0x000f) > 0x000f);
+                                        cpu.register.set_flag(Flag::C, (l & 0x00ff) + (r & 0x00ff) > 0x00ff);
+                                let right = right1.wrapping_add(right2);
                                 """,
                         RetType.u16
                 );
