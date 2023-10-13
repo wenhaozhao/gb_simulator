@@ -7,3 +7,11 @@ pub mod cpu;
 const FPS: u64 = 60;
 
 pub type Result<T> = std::result::Result<T, String>;
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub enum GBTerm {
+    GB,  // Original GameBoy (GameBoy Classic)
+    GBP, // GameBoy Pocket/GameBoy Light
+    GBC, // GameBoy Color
+    SGB, // Super GameBoy
+}

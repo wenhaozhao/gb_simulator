@@ -8,7 +8,8 @@ use crate::cpu::{CPU, CPUInfo};
 use crate::cpu::lr35902::clock::Clock;
 use crate::cpu::lr35902::opcode::Opcode;
 use crate::cpu::lr35902::opcodes::OPCODES;
-use crate::cpu::lr35902::registers::Registers;
+use crate::cpu::lr35902::registers::{Register, Registers};
+use crate::GBTerm;
 use crate::mmu::Memory;
 
 mod registers;
@@ -27,16 +28,18 @@ pub struct LR35902 {
     opcodes: &'static [Option<&'static dyn Opcode>; 0x0200],
     register: Registers,
     memory: Rc<RefCell<Box<dyn Memory>>>,
+    stack: Vec<u16>,
 }
 
 impl LR35902 {
-    pub fn new(memory: Rc<RefCell<Box<dyn Memory>>>) -> Self {
+    pub fn new(gb_term: GBTerm, memory: Rc<RefCell<Box<dyn Memory>>>) -> Self {
         LR35902 {
             info: CPUInfo::new(FREQ),
             clock: Clock::new(),
             opcodes: &OPCODES,
-            register: Registers::new(),
+            register: Registers::new(gb_term),
             memory, //RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())),// RefCell<Box<dyn Memory>>
+            stack: Vec::new(),
         }
     }
 }
@@ -54,6 +57,14 @@ impl LR35902 {
         let mut bytes = [00u8; 2];
         bytes.copy_from_slice(&vec);
         u16::from_le_bytes(bytes)
+    }
+
+    fn call(&mut self, addr: u16) {
+        let pc = self.register.get_u16(Register::PC);
+        let sp = self.register.sp_decr_by_and_get(0x0002);
+        self.memory.borrow_mut().set_u16(sp, pc);
+        self.stack.push(pc);
+        self.register.set_u16(Register::PC, addr);
     }
 
     fn actual_run(&mut self, actual_opcode_addr: u16) {
@@ -86,12 +97,13 @@ mod tests {
     use std::rc::Rc;
 
     use crate::cpu::lr35902::LR35902;
+    use crate::GBTerm;
     use crate::mmu::Memory;
 
     #[test]
     pub fn test_actual_run() {
         let mem_ref: Rc<RefCell<Box<dyn Memory>>> = Rc::new(RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())));
-        let mut cpu = LR35902::new(Rc::clone(&mem_ref));
+        let mut cpu = LR35902::new(GBTerm::GB, Rc::clone(&mem_ref));
         let actual_opcode_addr = 0x0020u16;
         let mut count = 100000;
         loop {
