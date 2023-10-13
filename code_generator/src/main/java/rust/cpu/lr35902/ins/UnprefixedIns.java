@@ -21,7 +21,12 @@ public enum UnprefixedIns implements Ins {
             return new AND().fnExec(opcode);
         }
     },
-    CALL,
+    CALL{
+        @Override
+        public String fnExec(Opcode opcode) {
+            return new CALL().fnExec(opcode);
+        }
+    },
     CCF,
     CP,
     CPL,
