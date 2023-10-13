@@ -1,9 +1,26 @@
+use std::time::SystemTime;
+
 mod lr35902;
 
 pub trait CPU {
-
     ///
     fn run(&mut self);
+
+    fn info(&self) -> &CPUInfo;
+}
+
+pub struct CPUInfo {
+    start_at: SystemTime,
+    freq: u64,
+}
+
+impl CPUInfo {
+    pub fn new(freq: u64) -> Self {
+        CPUInfo {
+            start_at: SystemTime::now(),
+            freq,
+        }
+    }
 }
 
 

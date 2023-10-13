@@ -1,54 +1,44 @@
 use std::cell::RefCell;
 use std::ops::Sub;
-use std::thread;
-use std::time::{Duration, SystemTime};
+use std::rc::Rc;
 
 use opcode::OPCODE_PREFIX_CB as PREFIX_CB;
 
-use crate::cpu::CPU;
+use crate::cpu::{CPU, CPUInfo};
+use crate::cpu::lr35902::clock::Clock;
 use crate::cpu::lr35902::opcode::Opcode;
+use crate::cpu::lr35902::opcodes::OPCODES;
 use crate::cpu::lr35902::registers::Registers;
 use crate::mmu::Memory;
 
 mod registers;
 mod opcode;
 mod opcodes;
+mod clock;
 
-#[derive(Debug)]
-pub struct Clock {
-    zero_at: SystemTime,
-    step_zero_at: SystemTime,
-    step_cycles: u64,
-}
+/// cpu frequency 4MHz
+/// cycles per seconds
+const FREQ: u64 = 0x0040_0000;
 
-impl Clock {
-    fn new() -> Self {
-        Clock {
-            zero_at: SystemTime::now(),
-            step_zero_at: SystemTime::now(),
-            step_cycles: 0,
-        }
-    }
-}
-
-impl Clock {
-    const FEQ: u64 = 0x0040_0000;
-    const FPS: u64 = 60;
-    // 60fps a good game value
-
-    const STEP_DUR: u64 = Duration::from_secs(1).as_millis() as u64 / Clock::FPS;
-
-    const FRAME_SPEED: u64 = Duration::from_secs(1).as_millis() as u64 / Clock::FPS; //16ms per frame
-
-    /// duration per frame in cycles
-    const FIC: u64 = Clock::FEQ / Clock::FPS;
-}
 
 pub struct LR35902 {
+    info: CPUInfo,
     clock: Clock,
     opcodes: &'static [Option<&'static dyn Opcode>; 0x0200],
     register: Registers,
-    memory: RefCell<Box<dyn Memory>>,
+    memory: Rc<RefCell<Box<dyn Memory>>>,
+}
+
+impl LR35902 {
+    pub fn new(memory: Rc<RefCell<Box<dyn Memory>>>) -> Self {
+        LR35902 {
+            info: CPUInfo::new(FREQ),
+            clock: Clock::new(),
+            opcodes: &OPCODES,
+            register: Registers::new(),
+            memory, //RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())),// RefCell<Box<dyn Memory>>
+        }
+    }
 }
 
 impl LR35902 {
@@ -65,11 +55,13 @@ impl LR35902 {
         bytes.copy_from_slice(&vec);
         u16::from_le_bytes(bytes)
     }
-}
 
-// 4MHz
-impl LR35902 {
-    fn sleep(&self, duration: Duration) {}
+    fn actual_run(&mut self, actual_opcode_addr: u16) {
+        let opcode = opcodes::get_opcode(actual_opcode_addr)
+            .expect(format!("Unsupported opcode {:04X}", actual_opcode_addr).as_str());
+        let cycles = opcode.exec(self);
+        if let Err(message) = self.clock.step(cycles) { eprintln!("{}", message); }
+    }
 }
 
 impl CPU for LR35902 {
@@ -82,46 +74,24 @@ impl CPU for LR35902 {
         };
         self.actual_run(actual_opcode_addr);
     }
-}
 
-impl LR35902 {
-    fn actual_run(&mut self, actual_opcode_addr: u16) {
-        let step_cycles = self.clock.step_cycles;
-        if step_cycles >= Clock::FIC {
-            // sleep
-            let elapse = SystemTime::now().duration_since(self.clock.step_zero_at).unwrap().as_millis() as u64;
-            let sleep = Clock::STEP_DUR.saturating_sub(elapse);
-            thread::sleep(Duration::from_millis(sleep));
-            self.clock.step_cycles -= Clock::FIC;
-            self.clock.step_zero_at = self.clock.step_zero_at.checked_add(Duration::from_millis(Clock::STEP_DUR)).unwrap();
-            #[cfg(test)]
-            {
-                println!("after sleep, step_cycles:{}, elapse:{}ms, sleep:{}ms, => {:?}", step_cycles, elapse, sleep, self.clock);
-            }
-        }
-        let opcode = opcodes::get_opcode(actual_opcode_addr)
-            .expect(format!("Unsupported opcode {:04X}", actual_opcode_addr).as_str());
-        let cycles = opcode.exec(self);
-        self.clock.step_cycles += cycles as u64;
+    fn info(&self) -> &CPUInfo {
+        &self.info
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::cell::RefCell;
+    use std::rc::Rc;
 
-    use crate::cpu::lr35902::{Clock, LR35902};
-    use crate::cpu::lr35902::opcodes::OPCODES;
-    use crate::cpu::lr35902::registers::Registers;
+    use crate::cpu::lr35902::LR35902;
+    use crate::mmu::Memory;
 
     #[test]
     pub fn test_actual_run() {
-        let mut cpu = LR35902 {
-            clock: Clock::new(),
-            opcodes: &OPCODES,
-            register: Registers::default(),
-            memory: RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())),// RefCell<Box<dyn Memory>>
-        };
+        let mem_ref: Rc<RefCell<Box<dyn Memory>>> = Rc::new(RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())));
+        let mut cpu = LR35902::new(Rc::clone(&mem_ref));
         let actual_opcode_addr = 0x0020u16;
         let mut count = 100000;
         loop {

@@ -46,15 +46,9 @@ pub enum Register {
     PC,
 }
 
-impl Default for Registers {
-    fn default() -> Self {
-        unsafe { mem::transmute::<[u16; 6], Registers>([0u16; 6]) }
-    }
-}
-
 impl Registers {
     pub fn new() -> Self {
-        Default::default()
+        unsafe { mem::transmute::<[u16; 6], Registers>([0u16; 6]) }
     }
 
     pub fn get_u16(&self, reg: Register) -> u16 {
@@ -203,7 +197,7 @@ mod tests {
 
     #[test]
     pub fn test_bc() {
-        let mut registers: Registers = Default::default();
+        let mut registers: Registers = Registers::new();
         registers.set_bc(0x0001);
         let bc = registers.get_bc();
         assert_eq!(bc, 0x0001);
@@ -214,7 +208,7 @@ mod tests {
 
     #[test]
     pub fn test_bc_lo() {
-        let mut registers: Registers = Default::default();
+        let mut registers: Registers = Registers::new();
         registers.set_bc(0x1001);
         registers.set_bc_lo(0x02);
         let bc = registers.get_bc();
@@ -225,7 +219,7 @@ mod tests {
 
     #[test]
     pub fn test_bc_hi() {
-        let mut registers: Registers = Default::default();
+        let mut registers: Registers = Registers::new();
         registers.set_bc(0x1001);
         registers.set_bc_hi(0x20);
         let bc = registers.get_bc();
