@@ -3,8 +3,13 @@ package rust.cpu.lr35902.ins;
 import rust.cpu.lr35902.Opcode;
 
 public enum UnprefixedIns implements Ins {
-    ADC(),
-    ADD(){
+    ADC() {
+        @Override
+        public String fnExec(Opcode opcode) {
+            return new ADC().fnExec(opcode);
+        }
+    },
+    ADD() {
         @Override
         public String fnExec(Opcode opcode) {
             return new ADD().fnExec(opcode);
@@ -22,13 +27,13 @@ public enum UnprefixedIns implements Ins {
     HALT,
     INC,
     JP,
-    JR(){
+    JR() {
         @Override
         public String fnExec(Opcode opcode) {
             return new JR().fnExec(opcode);
         }
     },
-    LD(){
+    LD() {
         @Override
         public String fnExec(Opcode opcode) {
             return new LD().fnExec(opcode);
