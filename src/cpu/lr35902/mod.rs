@@ -29,6 +29,8 @@ pub struct LR35902 {
     register: Registers,
     memory: Rc<RefCell<Box<dyn Memory>>>,
     stack: Vec<u16>,
+    halted: bool,
+    enable_interrupt: bool,
 }
 
 impl LR35902 {
@@ -40,6 +42,8 @@ impl LR35902 {
             register: Registers::new(gb_term),
             memory, //RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())),// RefCell<Box<dyn Memory>>
             stack: Vec::new(),
+            halted: false,
+            enable_interrupt: true,
         }
     }
 }
@@ -70,7 +74,11 @@ impl LR35902 {
     fn actual_run(&mut self, actual_opcode_addr: u16) {
         let opcode = opcodes::get_opcode(actual_opcode_addr)
             .expect(format!("Unsupported opcode {:04X}", actual_opcode_addr).as_str());
-        let cycles = opcode.exec(self);
+        let cycles = if self.halted {
+            0x04u8
+        } else {
+            opcode.exec(self)
+        };
         if let Err(message) = self.clock.step(cycles) { eprintln!("{}", message); }
     }
 }
