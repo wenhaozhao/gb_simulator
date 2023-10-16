@@ -1,20 +1,14 @@
 use std::cell::RefCell;
-use std::ops::Sub;
 use std::rc::Rc;
-
-use opcode::OPCODE_PREFIX_CB as PREFIX_CB;
 
 use crate::cpu::{CPU, CPUInfo};
 use crate::cpu::lr35902::clock::Clock;
-use crate::cpu::lr35902::opcode::Opcode;
-use crate::cpu::lr35902::opcodes::OPCODES;
 use crate::cpu::lr35902::registers::{Register, Registers};
 use crate::GBTerm;
 use crate::mmu::Memory;
 
 mod registers;
 mod opcode;
-mod opcodes;
 mod clock;
 
 /// cpu frequency 4MHz
@@ -25,7 +19,6 @@ const FREQ: u64 = 0x0040_0000;
 pub struct LR35902 {
     info: CPUInfo,
     clock: Clock,
-    opcodes: &'static [Option<&'static dyn Opcode>; 0x0200],
     register: Registers,
     memory: Rc<RefCell<Box<dyn Memory>>>,
     stack: Vec<u16>,
@@ -38,7 +31,6 @@ impl LR35902 {
         LR35902 {
             info: CPUInfo::new(FREQ),
             clock: Clock::new(),
-            opcodes: &OPCODES,
             register: Registers::new(gb_term),
             memory, //RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())),// RefCell<Box<dyn Memory>>
             stack: Vec::new(),
@@ -50,48 +42,38 @@ impl LR35902 {
 
 impl LR35902 {
     fn imm_u8(&mut self) -> u8 {
-        let addr = self.register.pc_get_and_incr();
+        let addr = self.register.get_and_incr_u16(Register::PC);
         let val = self.memory.borrow().get(addr);
         val
     }
 
     fn imm_u16(&mut self) -> u16 {
-        let addr = self.register.pc_get_and_decr_by(0x02);
+        let addr = self.register.get_and_incr_by_u16(Register::PC, 0x02);
         let vec = self.memory.borrow().gets(addr, 0x02);
         let mut bytes = [00u8; 2];
         bytes.copy_from_slice(&vec);
         u16::from_le_bytes(bytes)
     }
 
-    fn call(&mut self, addr: u16) {
-        let pc = self.register.get_u16(Register::PC);
-        let sp = self.register.sp_decr_by_and_get(0x0002);
-        self.memory.borrow_mut().set_u16(sp, pc);
-        self.stack.push(pc);
-        self.register.set_u16(Register::PC, addr);
-    }
-
-    fn actual_run(&mut self, actual_opcode_addr: u16) {
-        let opcode = opcodes::get_opcode(actual_opcode_addr)
-            .expect(format!("Unsupported opcode {:04X}", actual_opcode_addr).as_str());
+    fn actual_run(&mut self, opcode_addr: u16) {
         let cycles = if self.halted {
             0x04u8
         } else {
-            opcode.exec(self)
+            if opcode_addr == opcode::CB_PREFIXED {
+                self.cbprefixed_exec_opcode(opcode_addr as u8)
+            } else {
+                self.unprefixed_exec_opcode(opcode_addr as u8)
+            }
         };
         if let Err(message) = self.clock.step(cycles) { eprintln!("{}", message); }
     }
 }
 
+
 impl CPU for LR35902 {
     fn run(&mut self) {
         let opcode_addr = self.imm_u8() as u16;
-        let actual_opcode_addr = if opcode_addr == PREFIX_CB {
-            PREFIX_CB | (self.imm_u8() as u16)
-        } else {
-            opcode_addr
-        };
-        self.actual_run(actual_opcode_addr);
+        self.actual_run(opcode_addr);
     }
 
     fn info(&self) -> &CPUInfo {
