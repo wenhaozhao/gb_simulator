@@ -15,9 +15,9 @@ static OPCODE_CYCLES: [[u8; 2]; 0x100] = [
     [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [8, 0], [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [8, 0], [4, 0],
     [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [8, 0], [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [4, 0], [8, 0], [4, 0],
     [20, 8], [12, 0], [16, 12], [16, 0], [24, 12], [16, 0], [8, 0], [16, 0], [20, 8], [16, 0], [16, 12], [4, 0], [24, 12], [24, 0], [8, 0], [16, 0],
-    [20, 8], [12, 0], [16, 12], [8, 0], [24, 12], [16, 0], [8, 0], [16, 0], [20, 8], [16, 0], [16, 12], [8, 0], [24, 12], [8, 0], [8, 0], [16, 0],
-    [12, 0], [12, 0], [8, 0], [8, 0], [8, 0], [16, 0], [8, 0], [16, 0], [16, 0], [4, 0], [16, 0], [8, 0], [8, 0], [8, 0], [8, 0], [16, 0],
-    [12, 0], [12, 0], [8, 0], [4, 0], [8, 0], [16, 0], [8, 0], [16, 0], [12, 0], [8, 0], [16, 0], [4, 0], [8, 0], [8, 0], [8, 0], [16, 0]
+    [20, 8], [12, 0], [16, 12], [0, 0], [24, 12], [16, 0], [8, 0], [16, 0], [20, 8], [16, 0], [16, 12], [0, 0], [24, 12], [0, 0], [8, 0], [16, 0],
+    [12, 0], [12, 0], [8, 0], [0, 0], [0, 0], [16, 0], [8, 0], [16, 0], [16, 0], [4, 0], [16, 0], [0, 0], [0, 0], [0, 0], [8, 0], [16, 0],
+    [12, 0], [12, 0], [8, 0], [4, 0], [0, 0], [16, 0], [8, 0], [16, 0], [12, 0], [8, 0], [16, 0], [4, 0], [0, 0], [0, 0], [8, 0], [16, 0],
 ];
 
 impl LR35902 {
@@ -243,10 +243,26 @@ impl LR35902 {
                     OPCODE_CYCLES[opcode as usize][1]
                 }
             }
-            0x07 => self.alu_rlca(opcode), // RLCA
-            0x17 => self.alu_rla(opcode), // RLA
-            0x0F => self.alu_rrca(opcode), // RRCA
-            0x1F => self.alu_rra(opcode), // RRA
+            0x07 => { // RLCA
+                let res = self.alu_rlc(self.register.get_u8(Register::A));
+                self.register.set_u8(Register::A, res);
+                OPCODE_CYCLES[opcode as usize][0]
+            }
+            0x17 => { // RLA
+                let res = self.alu_rl(self.register.get_u8(Register::A));
+                self.register.set_u8(Register::A, res);
+                OPCODE_CYCLES[opcode as usize][0]
+            }
+            0x0F => { // RRCA
+                let res = self.alu_rrc(self.register.get_u8(Register::A));
+                self.register.set_u8(Register::A, res);
+                OPCODE_CYCLES[opcode as usize][0]
+            }
+            0x1F => { // RRA
+                let res = self.alu_rr(self.register.get_u8(Register::A));
+                self.register.set_u8(Register::A, res);
+                OPCODE_CYCLES[opcode as usize][0]
+            },
             // LD
             0x01 => {
                 let addr = self.imm_u16();
@@ -842,7 +858,7 @@ impl LR35902 {
                 let val = self.imm_u8();
                 self.alu_cp(opcode, val)
             }
-            other => panic!(format!("Unsupported opcode:{}", other)),
+            other => panic!("Unsupported opcode:{}", other),
         }
     }
 
@@ -905,54 +921,6 @@ impl LR35902 {
         let cycles = self.alu_push(opcode, Register::PC);
         self.register.set_u16(Register::PC, addr);
         cycles
-    }
-
-    fn alu_rlca(&mut self, opcode: u8) -> u8 {
-        let reg_a = self.register.get_u8(Register::A);
-        let flag_c = reg_a & 0x80 == 0x80;
-        let res = (reg_a << 1) | (flag_c as u8);
-        self.register.set_flag(Flag::Z, false);
-        self.register.set_flag(Flag::N, false);
-        self.register.set_flag(Flag::H, false);
-        self.register.set_flag(Flag::C, flag_c);
-        self.register.set_u8(Register::A, res);
-        OPCODE_CYCLES[opcode as usize][0]
-    }
-
-    fn alu_rla(&mut self, opcode: u8) -> u8 {
-        let reg_a = self.register.get_u8(Register::A);
-        let flag_c = reg_a & 0x80 == 0x80;
-        let res = (reg_a << 1) | (self.register.get_flag(Flag::C) as u8);
-        self.register.set_flag(Flag::Z, false);
-        self.register.set_flag(Flag::N, false);
-        self.register.set_flag(Flag::H, false);
-        self.register.set_flag(Flag::C, flag_c);
-        self.register.set_u8(Register::A, res);
-        OPCODE_CYCLES[opcode as usize][0]
-    }
-
-    fn alu_rrca(&mut self, opcode: u8) -> u8 {
-        let reg_a = self.register.get_u8(Register::A);
-        let flag_c = reg_a & 0x01 == 0x01;
-        let res = (if flag_c { 0x80 } else { 0x00 }) | (reg_a >> 1);
-        self.register.set_flag(Flag::Z, false);
-        self.register.set_flag(Flag::N, false);
-        self.register.set_flag(Flag::H, false);
-        self.register.set_flag(Flag::C, flag_c);
-        self.register.set_u8(Register::A, res);
-        OPCODE_CYCLES[opcode as usize][0]
-    }
-
-    fn alu_rra(&mut self, opcode: u8) -> u8 {
-        let reg_a = self.register.get_u8(Register::A);
-        let flag_c = reg_a & 0x01 == 0x01;
-        let res = (if self.register.get_flag(Flag::C) { 0x80 } else { 0x00 }) | (reg_a >> 1);
-        self.register.set_flag(Flag::Z, false);
-        self.register.set_flag(Flag::N, false);
-        self.register.set_flag(Flag::H, false);
-        self.register.set_flag(Flag::C, flag_c);
-        self.register.set_u8(Register::A, res);
-        OPCODE_CYCLES[opcode as usize][0]
     }
 
     fn alu_incr_reg(&mut self, opcode: u8, reg: Register) -> u8 {
