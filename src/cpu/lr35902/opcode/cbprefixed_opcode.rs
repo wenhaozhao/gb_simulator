@@ -162,7 +162,7 @@ impl LR35902 {
                     0x60..=0x6F => 5,
                     0x70..=0x77 => 6,
                     0x70..=0x7F => 7,
-                    other => panic!("Unsupported opcode:{}", other),
+                    other => panic!("Unsupported opcode: 0x{:04X}", other),
                 };
                 match Self::get_reg(opcode) {
                     Register::HL => {
@@ -187,7 +187,7 @@ impl LR35902 {
                     0xA0..=0xAF => 5,
                     0xB0..=0xB7 => 6,
                     0xB0..=0xBF => 7,
-                    other => panic!("Unsupported opcode:{}", other),
+                    other => panic!("Unsupported opcode: 0x{:04X}", other),
                 };
                 match Self::get_reg(opcode) {
                     Register::HL => {
@@ -214,7 +214,7 @@ impl LR35902 {
                     0xE0..=0xEF => 5,
                     0xF0..=0xF7 => 6,
                     0xF0..=0xFF => 7,
-                    other => panic!("Unsupported opcode:{}", other),
+                    other => panic!("Unsupported opcode: 0x{:04X}", other),
                 };
                 match Self::get_reg(opcode) {
                     Register::HL => {
@@ -230,7 +230,7 @@ impl LR35902 {
                 }
                 OPCODE_CYCLES[opcode as usize][0]
             }
-            other => panic!("Unsupported opcode:{}", other),
+            other => panic!("Unsupported opcode: 0x{:04X}", other),
         }
     }
 
@@ -244,7 +244,7 @@ impl LR35902 {
             0x05 | 0x0D => Register::L,
             0x06 | 0x0E => Register::HL,
             0x07 | 0x0F => Register::A,
-            other => panic!("Unsupported opcode:{}", other),
+            other => panic!("Unsupported opcode: 0x{:04X}", other),
         }
     }
 

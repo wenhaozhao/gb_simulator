@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-mod lr35902;
+pub mod lr35902;
 
 pub trait CPU {
     ///

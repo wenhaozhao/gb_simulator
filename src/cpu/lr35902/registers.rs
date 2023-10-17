@@ -88,7 +88,7 @@ impl Registers {
             Register::HL => self.hl,
             Register::SP => self.sp,
             Register::PC => self.pc,
-            other => panic!("Unsupported operation:{} for register:{:?}", "get_u16", other),
+            other => panic!("Unsupported operation: {} for register:{:?}", "get_u16", other),
         }
     }
 
@@ -100,7 +100,7 @@ impl Registers {
             Register::HL => self.hl = val,
             Register::SP => self.sp = val,
             Register::PC => self.pc = val,
-            other => panic!("Unsupported operation:{} for register:{:?} with val:{}", "set_u16", other, val),
+            other => panic!("Unsupported operation: {} for register:{:?} with val:{}", "set_u16", other, val),
         };
     }
 
@@ -136,7 +136,7 @@ impl Registers {
                 self.pc = v.wrapping_add(by);
                 v
             }
-            other => panic!("Unsupported operation:{} for register:{:?}", "get_and_incr_u16", other),
+            other => panic!("Unsupported operation: {} for register:{:?}", "get_and_incr_u16", other),
         }
     }
 
@@ -170,7 +170,7 @@ impl Registers {
                 self.pc = self.pc.wrapping_add(by);
                 self.pc
             }
-            other => panic!("Unsupported operation:{} for register:{:?}", "incr_and_get_u16", other),
+            other => panic!("Unsupported operation: {} for register:{:?}", "incr_and_get_u16", other),
         }
     }
 
@@ -210,7 +210,7 @@ impl Registers {
                 self.pc = v.wrapping_sub(1);
                 v
             }
-            other => panic!("Unsupported operation:{} for register:{:?}", "get_and_decr_u16", other),
+            other => panic!("Unsupported operation: {} for register:{:?}", "get_and_decr_u16", other),
         }
     }
 
@@ -240,7 +240,7 @@ impl Registers {
                 self.pc = self.pc.wrapping_sub(by);
                 self.pc
             }
-            other => panic!("Unsupported operation:{} for register:{:?}", "decr_and_get_u16", other),
+            other => panic!("Unsupported operation: {} for register:{:?}", "decr_and_get_u16", other),
         }
     }
 
@@ -258,7 +258,7 @@ impl Registers {
             Register::E => self.de as u8,
             Register::H => (self.hl >> 8) as u8,
             Register::L => self.hl as u8,
-            other => panic!("Unsupported operation:{} for register:{:?}", "get_u8", other),
+            other => panic!("Unsupported operation: {} for register:{:?}", "get_u8", other),
         }
     }
 
@@ -272,7 +272,7 @@ impl Registers {
             Register::E => self.de = (self.de & 0xFF00) | (val as u16),
             Register::H => self.hl = (self.hl & 0x00FF) | ((val as u16) << 8),
             Register::L => self.hl = (self.hl & 0xFF00) | (val as u16),
-            other => panic!("Unsupported operation:{} for register:{:?}", "set_u8", other),
+            other => panic!("Unsupported operation: {} for register:{:?}", "set_u8", other),
         };
     }
 }

@@ -69,7 +69,7 @@ impl Memory for MBC2 {
                     0x00
                 }
             }
-            _ => panic!("read addr {} denied", addr),
+            _ => panic!("read addr 0x{:04X} denied", addr),
         }
     }
 
@@ -101,7 +101,7 @@ impl Memory for MBC2 {
                     self.ram.set(addr - RAM_X_BASE, value)
                 }
             }
-            _ => panic!("write addr {} denied", addr),
+            _ => panic!("write addr 0x{:04X} denied", addr),
         }
     }
 }

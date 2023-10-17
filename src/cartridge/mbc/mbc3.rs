@@ -64,7 +64,7 @@ impl Memory for RTC {
             0x0A => elapse / 3600 % 24, // rtc hours
             0x0B => elapse / 3600 / 24, // rtc dl days
             0x0C => (elapse / 3600 / 24) & 0x1FF >> 8,
-            _ => panic!("read rtc reg {} denied", reg),
+            _ => panic!("read rtc reg 0x{:04X} denied", reg),
         };
         (v & 0xFF) as u8
     }
@@ -155,7 +155,7 @@ impl Memory for MBC3 {
                     0x00
                 }
             }
-            _ => panic!("read addr {} denied", addr),
+            _ => panic!("read addr 0x{:04X} denied", addr),
         }
     }
 
@@ -208,7 +208,7 @@ impl Memory for MBC3 {
                     }
                 }
             }
-            _ => panic!("write addr {} denied", addr),
+            _ => panic!("write addr 0x{:04X} denied", addr),
         }
     }
 }

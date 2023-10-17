@@ -858,7 +858,7 @@ impl LR35902 {
                 let val = self.imm_u8();
                 self.alu_cp(opcode, val)
             }
-            other => panic!("Unsupported opcode:{}", other),
+            other => panic!("Unsupported opcode: 0x{:04X}", other),
         }
     }
 
