@@ -1,3 +1,5 @@
+use crate::mmu;
+use crate::cpu::CPU;
 use crate::mmu::Memory;
 
 pub enum Flag {
@@ -26,13 +28,13 @@ impl From<u8> for Flag {
 /// - 7	6	5	4	    3	    2	    1	    0
 /// -           Joypad  Serial  Timer   LCD     VBlank
 
-pub struct IE {
+pub struct IER {
     data: u8,
 }
 
-impl IE {
-    pub fn new() -> IE {
-        IE { data: 0x00 }
+impl IER {
+    pub fn new() -> IER {
+        IER { data: 0x00 }
     }
 
     pub fn get_flag(&self, flag: Flag) -> bool {
@@ -40,7 +42,7 @@ impl IE {
     }
 }
 
-impl Memory for IE {
+impl Memory for IER {
     fn get(&self, i: u16) -> u8 {
         self.data
     }
@@ -50,13 +52,13 @@ impl Memory for IE {
     }
 }
 
-pub struct IF {
+pub struct IFR {
     data: u8,
 }
 
-impl IF {
-    pub fn new() -> IF {
-        IF { data: 0x00 }
+impl IFR {
+    pub fn new() -> IFR {
+        IFR { data: 0x00 }
     }
 
     pub fn get_flag(&self, flag: Flag) -> bool {
@@ -64,7 +66,7 @@ impl IF {
     }
 }
 
-impl Memory for IF {
+impl Memory for IFR {
     fn get(&self, i: u16) -> u8 {
         self.data
     }
@@ -72,4 +74,16 @@ impl Memory for IF {
     fn set(&mut self, i: u16, v: u8) {
         self.data = v
     }
+}
+
+
+pub fn on_interrupt(cpu: &mut dyn CPU, flag: Flag, _ier: u8, _ifr: u8) {
+
+    match flag {
+        Flag::VBlank => {}
+        Flag::LCDStat => {}
+        Flag::Timer => {}
+        Flag::Serial => {}
+        Flag::Joypad => {}
+    };
 }

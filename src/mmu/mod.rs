@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::mmu::cartridge::{Cartridge, CartType};
 use crate::gpu::GPU;
-use crate::interrupt::IE;
+use crate::interrupt::IER;
 use crate::io::IO;
+use crate::mmu::cartridge::{Cartridge, CartType};
 use crate::mmu::prohibited_mem::ProhibitedMem;
 use crate::mmu::work_ram::WorkRam;
 
@@ -61,7 +61,7 @@ pub struct MMU {
     wram: WorkRam,
     prohibited: ProhibitedMem,
     io: IO,
-    ie: IE, // interrupt enable register
+    ier: IER, // interrupt enable register
 }
 
 impl MMU {
@@ -72,7 +72,7 @@ impl MMU {
             wram: WorkRam::new(),
             prohibited: ProhibitedMem::new(),
             io: IO::new(),
-            ie: IE::new(),
+            ier: IER::new(),
         })))
     }
 }
@@ -92,7 +92,7 @@ impl Memory for MMU {
             0xFEA0..=0xFEFF => &self.prohibited,
             0xFF00..=0xFF7F => &self.io,
             0xFF80..=0xFFFE => &self.wram,
-            MMU_ADDR_IER => &self.ie,
+            MMU_ADDR_IER => &self.ier,
             addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
         };
         memory.get(addr)
@@ -109,7 +109,7 @@ impl Memory for MMU {
             0xFEA0..=0xFEFF => &mut self.prohibited,
             0xFF00..=0xFF7F => &mut self.io,
             0xFF80..=0xFFFE => &mut self.wram,
-            0xFFFF..=0xFFFF => &mut self.ie,
+            0xFFFF..=0xFFFF => &mut self.ier,
             addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
         };
         memory.set(i, v)
