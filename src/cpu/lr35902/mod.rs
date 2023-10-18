@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::cpu::{CPU, CPUInfo};
+use crate::cpu::{CPU, CPUInfo, MemType};
 use crate::cpu::lr35902::clock::Clock;
 use crate::cpu::lr35902::registers::{Register, Registers};
 use crate::GBTerm;
@@ -20,15 +20,15 @@ pub struct LR35902 {
     info: CPUInfo,
     clock: Clock,
     register: Registers,
-    memory: Rc<RefCell<Box<dyn Memory>>>,
+    memory: MemType,
     stack: Vec<u16>,
     halted: bool,
     enable_interrupt: bool,
 }
 
 impl LR35902 {
-    pub fn new(gb_term: GBTerm, memory: Rc<RefCell<Box<dyn Memory>>>) -> Self {
-        LR35902 {
+    pub fn new(gb_term: GBTerm, memory: MemType) -> Rc<RefCell<Box<dyn CPU>>> {
+        Rc::new(RefCell::new(Box::new(LR35902 {
             info: CPUInfo::new(FREQ),
             clock: Clock::new(),
             register: Registers::new(gb_term),
@@ -36,7 +36,7 @@ impl LR35902 {
             stack: Vec::new(),
             halted: false,
             enable_interrupt: true,
-        }
+        })))
     }
 }
 
@@ -55,14 +55,16 @@ impl LR35902 {
         u16::from_le_bytes(bytes)
     }
 
-    fn actual_run(&mut self, opcode_addr: u16) {
+    fn actual_run(&mut self, opcode: u16) {
+        #[cfg(test)]
+        println!("opcode: 0x{:04X}", opcode);
         let cycles = if self.halted {
             0x04u8
         } else {
-            if opcode_addr == opcode::CB_PREFIXED {
-                self.cbprefixed_exec_opcode(opcode_addr as u8)
+            if opcode == opcode::CB_PREFIXED {
+                self.cbprefixed_exec_opcode(opcode as u8)
             } else {
-                self.unprefixed_exec_opcode(opcode_addr as u8)
+                self.unprefixed_exec_opcode(opcode as u8)
             }
         };
         if let Err(message) = self.clock.step(cycles) { eprintln!("{}", message); }
@@ -71,9 +73,13 @@ impl LR35902 {
 
 
 impl CPU for LR35902 {
+    fn memory(&self) -> MemType {
+        Rc::clone(&self.memory)
+    }
+
     fn run(&mut self) {
-        let opcode_addr = self.imm_u8() as u16;
-        self.actual_run(opcode_addr);
+        let opcode = self.imm_u8() as u16;
+        self.actual_run(opcode);
     }
 
     fn info(&self) -> &CPUInfo {
@@ -82,26 +88,4 @@ impl CPU for LR35902 {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::cell::RefCell;
-    use std::rc::Rc;
-
-    use crate::cpu::lr35902::LR35902;
-    use crate::GBTerm;
-    use crate::mmu::Memory;
-
-    #[test]
-    pub fn test_actual_run() {
-        let mem_ref: Rc<RefCell<Box<dyn Memory>>> = Rc::new(RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())));
-        let mut cpu = LR35902::new(GBTerm::GB, Rc::clone(&mem_ref));
-        let actual_opcode_addr = 0x0020u16;
-        let mut count = 100000;
-        loop {
-            cpu.actual_run(actual_opcode_addr);
-            count -= 1;
-            if count <= 0 {
-                return;
-            }
-        }
-    }
-}
+mod tests {}

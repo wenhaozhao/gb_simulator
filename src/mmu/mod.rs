@@ -1,4 +1,20 @@
-/// MMU
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::mmu::cartridge::{Cartridge, CartType};
+use crate::mmu::gpu::GPU;
+use crate::mmu::interrupt::InterruptFlag;
+use crate::mmu::io::IO;
+use crate::mmu::prohibited_mem::ProhibitedMem;
+use crate::mmu::work_ram::WorkRam;
+
+mod block_ram;
+mod io;
+mod gpu;
+mod work_ram;
+mod prohibited_mem;
+mod cartridge;
+mod interrupt;
 
 pub trait Memory {
     fn get(&self, i: u16) -> u8;
@@ -42,6 +58,88 @@ pub trait Memory {
         }
     }
 }
+
+pub struct MMU {
+    cart: Cartridge,
+    gpu: GPU,
+    wram: WorkRam,
+    prohibited: ProhibitedMem,
+    io: IO,
+    interrupt: InterruptFlag,
+}
+
+impl MMU {
+    pub fn new(cart: CartType) -> Rc<RefCell<Box<dyn Memory>>> {
+        Rc::new(RefCell::new(Box::new(MMU {
+            cart: Cartridge::new(cart),
+            gpu: GPU::new(),
+            wram: WorkRam::new(),
+            prohibited: ProhibitedMem::new(),
+            io: IO::new(),
+            interrupt: InterruptFlag::new(),
+        })))
+    }
+}
+
+impl Memory for MMU {
+    fn get(&self, i: u16) -> u8 {
+        let memory: &dyn Memory = match i {
+            0x0000..=0x7FFF => &self.cart,
+            0x8000..=0x9FFF => &self.gpu,
+            0xA000..=0xBFFF => &self.cart,
+            0xC000..=0xDFFF => &self.wram,
+            0xE000..=0xFDFF => &self.prohibited,
+            0xFE00..=0xFE9F => &self.gpu,
+            0xFEA0..=0xFEFF => &self.prohibited,
+            0xFF00..=0xFF7F => &self.io,
+            0xFF80..=0xFFFE => &self.wram,
+            0xFFFF..=0xFFFF => &self.interrupt,
+            addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
+        };
+        memory.get(i)
+    }
+
+    fn set(&mut self, i: u16, v: u8) {
+        let memory: &mut dyn Memory = match i {
+            0x0000..=0x7FFF => &mut self.cart,
+            0x8000..=0x9FFF => &mut self.gpu,
+            0xA000..=0xBFFF => &mut self.cart,
+            0xC000..=0xDFFF => &mut self.wram,
+            0xE000..=0xFDFF => &mut self.prohibited,
+            0xFE00..=0xFE9F => &mut self.gpu,
+            0xFEA0..=0xFEFF => &mut self.prohibited,
+            0xFF00..=0xFF7F => &mut self.io,
+            0xFF80..=0xFFFE => &mut self.wram,
+            0xFFFF..=0xFFFF => &mut self.interrupt,
+            addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
+        };
+        memory.set(i, v)
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct BlockRam<const SIZE: usize> {
+    bytes: [u8; SIZE],
+}
+
+impl<const SIZE: usize> BlockRam<SIZE> {
+    pub fn new() -> BlockRam<SIZE> {
+        BlockRam {
+            bytes: [0u8; SIZE]
+        }
+    }
+}
+
+impl<const SIZE: usize> Memory for BlockRam<SIZE> {
+    fn get(&self, i: u16) -> u8 {
+        self.bytes[i as usize]
+    }
+
+    fn set(&mut self, i: u16, v: u8) {
+        self.bytes[i as usize] = v;
+    }
+}
+
 
 #[cfg(test)]
 pub mod tests {

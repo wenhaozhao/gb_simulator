@@ -1,9 +1,16 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::SystemTime;
+
+use crate::mmu::Memory;
 
 pub mod lr35902;
 
+pub type MemType = Rc<RefCell<Box<dyn Memory>>>;
+
 pub trait CPU {
-    ///
+    fn memory(&self) -> MemType;
+
     fn run(&mut self);
 
     fn info(&self) -> &CPUInfo;
