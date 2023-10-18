@@ -4,6 +4,9 @@ pub mod cpu;
 
 #[cfg(test)]
 mod tests;
+mod io;
+mod gpu;
+mod interrupt;
 
 /// game frame frequency 60FPS
 /// 16ms/frame

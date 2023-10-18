@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::{GBTerm, interrupt, mmu};
 use crate::cpu::{CPU, CPUInfo, MemType};
 use crate::cpu::lr35902::clock::Clock;
 use crate::cpu::lr35902::registers::{Register, Registers};
-use crate::GBTerm;
 use crate::mmu::Memory;
 
 mod registers;
@@ -23,7 +23,7 @@ pub struct LR35902 {
     memory: MemType,
     stack: Vec<u16>,
     halted: bool,
-    enable_interrupt: bool,
+    ei: bool,// interrupt is enable
 }
 
 impl LR35902 {
@@ -35,7 +35,7 @@ impl LR35902 {
             memory, //RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())),// RefCell<Box<dyn Memory>>
             stack: Vec::new(),
             halted: false,
-            enable_interrupt: true,
+            ei: true,
         })))
     }
 }
@@ -56,20 +56,50 @@ impl LR35902 {
         bytes.copy_from_slice(&vec);
         u16::from_le_bytes(bytes)
     }
-
     fn actual_run(&mut self, opcode: u16) {
         #[cfg(test)]
         println!("opcode: 0x{:04X}", opcode);
-        let cycles = if self.halted {
-            0x04u8
-        } else {
-            if opcode == opcode::CB_PREFIXED {
-                self.cbprefixed_exec_opcode(opcode as u8)
-            } else {
-                self.unprefixed_exec_opcode(opcode as u8)
-            }
-        };
+        let cycles = self.actual_run_0(opcode);
         if let Err(message) = self.clock.step(cycles) { eprintln!("{}", message); }
+    }
+
+    fn actual_run_0(&mut self, opcode: u16) -> u8 {
+        if self.halted {
+            return 0x04u8;
+        }
+        if self.ei {
+            // 中断处理
+            let ier = self.memory.borrow().get(mmu::MMU_ADDR_IER);
+            let ifr = self.memory.borrow().get(mmu::MMU_ADDR_IFR);
+            let ii = ier & ifr;
+            if ii > 0x00 {
+                // 有中断
+                self.halted = false; // 关halt
+                if self.ei {
+                    // 允许中断
+                    self.ei = false;// 关中断
+                    // 按中断优先级处理
+                    let flag = ifr.trailing_zeros() as u8;// 当前中断位
+                    self.memory.borrow_mut().set(mmu::MMU_ADDR_IFR, ifr & !(0x01 << flag));// 清空当前中断位
+                    return match interrupt::Flag::from(flag) {
+                        interrupt::Flag::VBlank => 0x04u8,
+                        interrupt::Flag::LCDStat => 0x04u8,
+                        interrupt::Flag::Timer => 0x04u8,
+                        interrupt::Flag::Serial => 0x04u8,
+                        interrupt::Flag::Joypad => 0x04u8,
+                    };
+                }
+            }
+        }
+        self.opcode_run(opcode)
+    }
+
+    fn opcode_run(&mut self, opcode: u16) -> u8 {
+        if opcode == opcode::CB_PREFIXED {
+            self.cbprefixed_exec_opcode(opcode as u8)
+        } else {
+            self.unprefixed_exec_opcode(opcode as u8)
+        }
     }
 }
 

@@ -2,19 +2,15 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::mmu::cartridge::{Cartridge, CartType};
-use crate::mmu::gpu::GPU;
-use crate::mmu::interrupt::InterruptFlag;
-use crate::mmu::io::IO;
+use crate::gpu::GPU;
+use crate::interrupt::IE;
+use crate::io::IO;
 use crate::mmu::prohibited_mem::ProhibitedMem;
 use crate::mmu::work_ram::WorkRam;
 
-mod block_ram;
-mod io;
-mod gpu;
 mod work_ram;
 mod prohibited_mem;
 mod cartridge;
-mod interrupt;
 
 pub trait Memory {
     fn get(&self, i: u16) -> u8;
@@ -65,7 +61,7 @@ pub struct MMU {
     wram: WorkRam,
     prohibited: ProhibitedMem,
     io: IO,
-    interrupt: InterruptFlag,
+    ie: IE, // interrupt enable register
 }
 
 impl MMU {
@@ -76,14 +72,17 @@ impl MMU {
             wram: WorkRam::new(),
             prohibited: ProhibitedMem::new(),
             io: IO::new(),
-            interrupt: InterruptFlag::new(),
+            ie: IE::new(),
         })))
     }
 }
 
+pub const MMU_ADDR_IER: u16 = 0xFFFF;
+pub const MMU_ADDR_IFR: u16 = 0xFF0F;
+
 impl Memory for MMU {
-    fn get(&self, i: u16) -> u8 {
-        let memory: &dyn Memory = match i {
+    fn get(&self, addr: u16) -> u8 {
+        let memory: &dyn Memory = match addr {
             0x0000..=0x7FFF => &self.cart,
             0x8000..=0x9FFF => &self.gpu,
             0xA000..=0xBFFF => &self.cart,
@@ -93,10 +92,10 @@ impl Memory for MMU {
             0xFEA0..=0xFEFF => &self.prohibited,
             0xFF00..=0xFF7F => &self.io,
             0xFF80..=0xFFFE => &self.wram,
-            0xFFFF..=0xFFFF => &self.interrupt,
+            MMU_ADDR_IER => &self.ie,
             addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
         };
-        memory.get(i)
+        memory.get(addr)
     }
 
     fn set(&mut self, i: u16, v: u8) {
@@ -110,7 +109,7 @@ impl Memory for MMU {
             0xFEA0..=0xFEFF => &mut self.prohibited,
             0xFF00..=0xFF7F => &mut self.io,
             0xFF80..=0xFFFE => &mut self.wram,
-            0xFFFF..=0xFFFF => &mut self.interrupt,
+            0xFFFF..=0xFFFF => &mut self.ie,
             addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
         };
         memory.set(i, v)
