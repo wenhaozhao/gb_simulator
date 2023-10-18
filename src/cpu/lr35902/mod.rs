@@ -44,6 +44,8 @@ impl LR35902 {
     fn imm_u8(&mut self) -> u8 {
         let addr = self.register.get_and_incr_u16(Register::PC);
         let val = self.memory.borrow().get(addr);
+        #[cfg(test)]
+        println!("imm_u8: 0x{:04X} => 0x{:04X}", addr, val);
         val
     }
 
