@@ -81,13 +81,14 @@ impl LR35902 {
                     // 按中断优先级处理
                     let flag = ifr.trailing_zeros() as u8;// 当前中断位
                     self.memory.borrow_mut().set(mmu::MMU_ADDR_IFR, ifr & !(0x01 << flag));// 清空当前中断位
-                    return match interrupt::Flag::from(flag) {
-                        interrupt::Flag::VBlank => 0x04u8,
-                        interrupt::Flag::LCDStat => 0x04u8,
-                        interrupt::Flag::Timer => 0x04u8,
-                        interrupt::Flag::Serial => 0x04u8,
-                        interrupt::Flag::Joypad => 0x04u8,
+                    match interrupt::Flag::from(flag) {
+                        interrupt::Flag::VBlank => {},
+                        interrupt::Flag::LCDStat => {},
+                        interrupt::Flag::Timer => {},
+                        interrupt::Flag::Serial => {},
+                        interrupt::Flag::Joypad => {},
                     };
+                    return 0x04u8;
                 }
             }
         }
