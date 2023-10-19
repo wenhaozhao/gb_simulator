@@ -7,6 +7,7 @@ mod tests;
 mod io;
 mod gpu;
 mod interrupt;
+mod mother_board;
 
 /// game frame frequency 60FPS
 /// 16ms/frame

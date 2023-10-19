@@ -512,6 +512,7 @@ pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<
     }?;
     let _ = cart.check_logo()?;
     let _ = cart.check_header()?;
+    println!("{}", &cart.info());
     Ok(cart)
 }
 
