@@ -1,11 +1,12 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::{GBTerm, mmu};
-use crate::cpu::{CPU, CPUInfo, MemType};
+use crate::{GBTerm, io_device};
+use crate::cpu::{CPU, CPUInfo, RefMemory};
 use crate::cpu::lr35902::clock::Clock;
 use crate::cpu::lr35902::registers::{Register, Registers};
 use crate::io_device::interrupt;
+use crate::io_device::interrupt::RefInterrupt;
 use crate::mmu::Memory;
 
 mod registers;
@@ -21,14 +22,20 @@ pub struct LR35902 {
     info: CPUInfo,
     clock: Clock,
     register: Registers,
-    memory: MemType,
+    memory: RefMemory,
     stack: Vec<u16>,
     halted: bool,
-    ei: bool,// interrupt is enable
+    /// interrupt is enable
+    int_e: bool,
+    interrupt: RefInterrupt,
 }
 
 impl LR35902 {
-    pub fn new(gb_term: GBTerm, memory: MemType) -> Rc<RefCell<Box<dyn CPU>>> {
+    pub fn new(
+        gb_term: GBTerm,
+        memory: RefMemory,
+        interrupt: RefInterrupt,
+    ) -> Rc<RefCell<Box<dyn CPU>>> {
         Rc::new(RefCell::new(Box::new(LR35902 {
             info: CPUInfo::new(FREQ),
             clock: Clock::new(),
@@ -36,7 +43,8 @@ impl LR35902 {
             memory, //RefCell::new(Box::new(crate::mmu::tests::TestMemory::new())),// RefCell<Box<dyn Memory>>
             stack: Vec::new(),
             halted: false,
-            ei: true,
+            int_e: true,
+            interrupt,
         })))
     }
 }
@@ -68,21 +76,20 @@ impl LR35902 {
         if self.halted {
             return 0x04u8;
         }
-        if self.ei {
+        if self.int_e {
             // 中断处理
-            let ier = self.memory.borrow().get(mmu::MMU_ADDR_IER);
-            let ifr = self.memory.borrow().get(mmu::MMU_ADDR_IFR);
-            let ii = ier & ifr;
+            let int_e = self.memory.borrow().get(io_device::IO_ADDR_INT_E);
+            let int_f = self.memory.borrow().get(io_device::IO_ADDR_INT_F);
+            let ii = int_e & int_f;
             if ii > 0x00 {
                 // 有中断
                 self.halted = false; // 关halt
-                if self.ei {
-                    // 允许中断
-                    self.ei = false;// 关中断
+                if self.int_e {// 允许中断
+                    self.int_e = false;// CPU关中断
                     // 按中断优先级处理
-                    let flag = ifr.trailing_zeros() as u8;// 当前中断位
-                    self.memory.borrow_mut().set(mmu::MMU_ADDR_IFR, ifr & !(0x01 << flag));// 清空当前中断位
-                    interrupt::on_interrupt(self, interrupt::Flag::from(flag), ier, ifr);
+                    let flag = int_f.trailing_zeros() as u8;// 当前中断位
+                    self.memory.borrow_mut().set(io_device::IO_ADDR_INT_F, int_f & !(0x01 << flag));// 清空当前中断位
+                    self.interrupt.borrow_mut().handle(Rc::clone(&self.memory), interrupt::Flag::from(flag));
                     return 0x04u8;
                 }
             }
@@ -101,7 +108,7 @@ impl LR35902 {
 
 
 impl CPU for LR35902 {
-    fn memory(&self) -> MemType {
+    fn memory(&self) -> RefMemory {
         Rc::clone(&self.memory)
     }
 

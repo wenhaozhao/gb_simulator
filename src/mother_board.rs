@@ -2,21 +2,31 @@ use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 use crate::{cpu, GBTerm};
-use crate::cpu::CPU;
+use crate::cpu::{CPU, RefCPU};
 use crate::io_device::cartridge;
-use crate::mmu::{Memory, MMU};
+use crate::io_device::interrupt::Interrupt;
+use crate::io_device::joypad::Joypad;
+use crate::mmu::{Memory, MMU, RefMemory};
 
 pub struct MotherBoard {
-    cpu: Rc<RefCell<Box<dyn CPU>>>,
-    mmu: Rc<RefCell<Box<dyn Memory>>>,
+    cpu: RefCPU,
+    mmu: RefMemory,
 }
 
 impl MotherBoard {
     pub fn new(rom_path: String, ram_path: String, rtc_path: String) -> crate::Result<MotherBoard> {
-        let mmu = MMU::new(Rc::new(RefCell::new(cartridge::power_up(rom_path, ram_path, rtc_path)?)));
+        let interrupt = Interrupt::new();
+        let cartridge = cartridge::power_up(rom_path, ram_path, rtc_path)?;
+        let joypad = Joypad::new(Rc::clone(&interrupt));
+        let mmu = MMU::new(
+            Rc::clone(&cartridge),
+            Rc::clone(&interrupt),
+            Rc::clone(&joypad),
+        );
         let cpu = cpu::lr35902::LR35902::new(
             GBTerm::GB,
             Rc::clone(&mmu),
+            Rc::clone(&interrupt),
         );
         Ok(MotherBoard {
             cpu: cpu,
@@ -29,7 +39,7 @@ impl MotherBoard {
         cpu
     }
 
-    pub fn start(&self) {
+    pub fn start(&self) -> ! {
         loop {
             self.cpu.borrow_mut().run()
         }

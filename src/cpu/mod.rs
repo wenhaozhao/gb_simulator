@@ -2,14 +2,14 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::SystemTime;
 
-use crate::mmu::Memory;
+use crate::mmu::{Memory, RefMemory};
 
 pub mod lr35902;
 
-pub type MemType = Rc<RefCell<Box<dyn Memory>>>;
+pub type RefCPU = Rc<RefCell<Box<dyn CPU>>>;
 
 pub trait CPU {
-    fn memory(&self) -> MemType;
+    fn memory(&self) -> RefMemory;
 
     fn run(&mut self);
 

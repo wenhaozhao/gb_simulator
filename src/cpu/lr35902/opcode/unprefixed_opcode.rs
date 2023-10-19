@@ -52,11 +52,11 @@ impl LR35902 {
                 OPCODE_CYCLES[opcode as usize][0]
             }
             0xF3 => { // DI
-                self.ei = false;
+                self.int_e = false;
                 OPCODE_CYCLES[opcode as usize][0]
             }
             0xFB => { //EI
-                self.ei = true;
+                self.int_e = true;
                 OPCODE_CYCLES[opcode as usize][0]
             }
             // JR
@@ -184,7 +184,7 @@ impl LR35902 {
             }
             0xD9 => { // RETI
                 let cycles = self.alu_ret(opcode);
-                self.ei = true;
+                self.int_e = true;
                 cycles
             }
             // POP

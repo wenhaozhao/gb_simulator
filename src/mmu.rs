@@ -1,48 +1,50 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::io_device;
-use crate::io_device::interrupt::IER;
-use crate::io_device::IOBus;
+use crate::io_device::cartridge::RefCartridge;
+use crate::io_device::interrupt::RefInterrupt;
+use crate::io_device::joypad::RefJoypad;
 use crate::io_device::video::Video;
 use crate::io_device::wram::WorkRam;
 
-pub trait Memory {
-    fn get(&self, i: u16) -> u8;
+pub type RefMemory = Rc<RefCell<Box<dyn Memory>>>;
 
-    fn get_u8(&self, i: u16) -> u8 {
-        self.get(i)
+pub trait Memory {
+    fn get(&self, addr: u16) -> u8;
+
+    fn get_u8(&self, addr: u16) -> u8 {
+        self.get(addr)
     }
 
-    fn get_u16(&self, i: u16) -> u16 {
-        let vec = self.gets(i, 2);
+    fn get_u16(&self, addr: u16) -> u16 {
+        let vec = self.gets(addr, 2);
         let mut bytes = [0u8; 2];
         bytes.copy_from_slice(&vec);
         u16::from_le_bytes(bytes)
     }
 
-    fn gets(&self, i: u16, size: u16) -> Vec<u8> {
+    fn gets(&self, addr: u16, size: u16) -> Vec<u8> {
         let mut vec = Vec::with_capacity(size as usize);
         for j in 0..size {
-            vec.push(self.get(i + j));
+            vec.push(self.get(addr + j));
         }
         vec
     }
 
-    fn set(&mut self, i: u16, v: u8);
+    fn set(&mut self, addr: u16, v: u8);
 
-    fn set_u8(&mut self, i: u16, v: u8) {
-        self.set(i, v);
+    fn set_u8(&mut self, addr: u16, v: u8) {
+        self.set(addr, v);
     }
 
-    fn set_u16(&mut self, i: u16, val: u16) {
+    fn set_u16(&mut self, addr: u16, val: u16) {
         let bytes = val.to_le_bytes();
         let vec = bytes.to_vec();
-        self.sets(i, &vec);
+        self.sets(addr, &vec);
     }
 
-    fn sets(&mut self, i: u16, bytes: &Vec<u8>) {
-        let mut i = i;
+    fn sets(&mut self, addr: u16, bytes: &Vec<u8>) {
+        let mut i = addr;
         for v in bytes {
             self.set(i, *v);
             i += 1;
@@ -56,32 +58,31 @@ pub fn new_ram<const CAP: usize>() -> RAM<CAP> where {
     Rc::new(RefCell::new(Box::new(vec![0u8; CAP])))
 }
 
-pub type Cartridge = Rc<RefCell<Box<dyn io_device::cartridge::Cartridge>>>;
-
 pub struct MMU {
-    cart: Cartridge,
+    cart: RefCartridge,
     video: Video,
-    wram: WorkRam,
+    work_ram: WorkRam,
     prohibited: Prohibited,
-    io_bus: IOBus,
-    ier: IER, // interrupt enable register
+    interrupt: RefInterrupt,
+    joypad: RefJoypad,
 }
 
 impl MMU {
-    pub fn new(cart: Cartridge) -> Rc<RefCell<Box<dyn Memory>>> {
+    pub fn new(
+        cart: RefCartridge,
+        interrupt: RefInterrupt,
+        joypad: RefJoypad,
+    ) -> RefMemory {
         Rc::new(RefCell::new(Box::new(MMU {
             cart: cart,
             video: Video::new(),
-            wram: WorkRam::new(),
+            work_ram: WorkRam::new(),
             prohibited: Prohibited::new(),
-            io_bus: IOBus::new(),
-            ier: IER::new(),
+            interrupt,
+            joypad,
         })))
     }
 }
-
-pub const MMU_ADDR_IER: u16 = 0xFFFF;
-pub const MMU_ADDR_IFR: u16 = 0xFF0F;
 
 impl Memory for MMU {
     fn get(&self, addr: u16) -> u8 {
@@ -89,18 +90,18 @@ impl Memory for MMU {
             0x0000..=0x7FFF => self.cart.borrow().get(addr),
             0x8000..=0x9FFF => self.video.get(addr),
             0xA000..=0xBFFF => self.cart.borrow().get(addr),
-            0xC000..=0xDFFF => self.wram.get(addr),
+            0xC000..=0xDFFF => self.work_ram.get(addr),
             0xE000..=0xFDFF => self.prohibited.get(addr),
             0xFE00..=0xFE9F => self.video.get(addr),
             0xFEA0..=0xFEFF => self.prohibited.get(addr),
-            0xFF00 => todo!(), /// P1/JOYP Joypad Mixed All
+            0xFF00 => self.joypad.borrow().get(addr),
             0xFF01 => todo!(), /// SB Serial transfer data R/W All
             0xFF02 => todo!(), /// SC Serial transfer control R/W Mixed
             0xFF04 => todo!(), /// DIV Divider register R/W All
             0xFF05 => todo!(), /// TIMA Timer counter R/W All
             0xFF06 => todo!(), /// TMA Timer modulo R/W All
             0xFF07 => todo!(), /// TAC Timer control R/W All
-            0xFF0F => todo!(), /// IF Interrupt flag R/W All
+            0xFF0F => self.interrupt.borrow().get(addr),
             0xFF10 => todo!(), /// NR10 Sound channel 1 sweep R/W All
             0xFF11 => todo!(), /// NR11 Sound channel 1 length timer & duty cycle Mixed All
             0xFF12 => todo!(), /// NR12 Sound channel 1 volume & envelope R/W All
@@ -148,11 +149,11 @@ impl Memory for MMU {
             0xFF6A => todo!(), /// OCPS/OBPI OBJ color palette specification / OBJ palette index R/W CGB
             0xFF6B => todo!(), /// OCPD/OBPD OBJ color palette data / OBJ palette data R/W CGB
             0xFF6C => todo!(), /// OPRI Object priority mode R/W CGB
-            0xFF70 => self.wram.get(addr), /// SVBK WRAM bank R/W CGB
+            0xFF70 => self.work_ram.get(addr), /// SVBK WRAM bank R/W CGB
             0xFF76 => todo!(), /// PCM12 Audio digital outputs 1 & 2 R CGB
             0xFF77 => todo!(), /// PCM34 Audio digital outputs 3 & 4 R CGB
-            0xFF80..=0xFFFE => self.wram.get(addr),
-            0xFFFF => self.ier.get(addr),
+            0xFF80..=0xFFFE => self.work_ram.get(addr),
+            0xFFFF => self.interrupt.borrow().get(addr),
             addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
         }
     }
@@ -162,18 +163,18 @@ impl Memory for MMU {
             0x0000..=0x7FFF => self.cart.borrow_mut().set(addr, v),
             0x8000..=0x9FFF => self.video.set(addr, v),
             0xA000..=0xBFFF => self.cart.borrow_mut().set(addr, v),
-            0xC000..=0xDFFF => self.wram.set(addr, v),
+            0xC000..=0xDFFF => self.work_ram.set(addr, v),
             0xE000..=0xFDFF => self.prohibited.set(addr, v),
             0xFE00..=0xFE9F => self.video.set(addr, v),
             0xFEA0..=0xFEFF => self.prohibited.set(addr, v),
-            0xFF00 => todo!(), /// P1/JOYP Joypad Mixed All
+            0xFF00 => self.joypad.borrow_mut().set(addr, v),
             0xFF01 => todo!(), /// SB Serial transfer data R/W All
             0xFF02 => todo!(), /// SC Serial transfer control R/W Mixed
             0xFF04 => todo!(), /// DIV Divider register R/W All
             0xFF05 => todo!(), /// TIMA Timer counter R/W All
             0xFF06 => todo!(), /// TMA Timer modulo R/W All
             0xFF07 => todo!(), /// TAC Timer control R/W All
-            0xFF0F => todo!(), /// IF Interrupt flag R/W All
+            0xFF0F => self.interrupt.borrow_mut().set(addr, v),
             0xFF10 => todo!(), /// NR10 Sound channel 1 sweep R/W All
             0xFF11 => todo!(), /// NR11 Sound channel 1 length timer & duty cycle Mixed All
             0xFF12 => todo!(), /// NR12 Sound channel 1 volume & envelope R/W All
@@ -221,11 +222,11 @@ impl Memory for MMU {
             0xFF6A => todo!(), /// OCPS/OBPI OBJ color palette specification / OBJ palette index R/W CGB
             0xFF6B => todo!(), /// OCPD/OBPD OBJ color palette data / OBJ palette data R/W CGB
             0xFF6C => todo!(), /// OPRI Object priority mode R/W CGB
-            0xFF70 => self.wram.set(addr, v), /// SVBK WRAM bank R/W CGB
+            0xFF70 => self.work_ram.set(addr, v), /// SVBK WRAM bank R/W CGB
             0xFF76 => todo!(), /// PCM12 Audio digital outputs 1 & 2 R CGB
             0xFF77 => todo!(), /// PCM34 Audio digital outputs 3 & 4 R CGB
-            0xFF80..=0xFFFE => self.wram.set(addr, v),
-            0xFFFF => self.ier.set(addr, v), /// IE Interrupt enable R/W All
+            0xFF80..=0xFFFE => self.work_ram.set(addr, v),
+            0xFFFF => self.interrupt.borrow_mut().set(addr, v),
             addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
         };
     }
@@ -270,7 +271,7 @@ impl Memory for Prohibited {
         panic!("Prohibited access denied, addr: 0x{:04X}", i);
     }
 
-    fn set(&mut self, i: u16, v: u8) {
+    fn set(&mut self, i: u16, _v: u8) {
         panic!("Prohibited access denied, addr: 0x{:04X}", i);
     }
 }

@@ -1,6 +1,8 @@
+use std::cell::RefCell;
 use std::fmt::Formatter;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::rc::Rc;
 
 use crate::io_device::cartridge::mbc::mbc1::{CART_TYPE_MBC1, CART_TYPE_MBC1_RAM, CART_TYPE_MBC1_RAM_BATTERY, MBC1};
 use crate::io_device::cartridge::mbc::mbc2::{CART_TYPE_MBC2, CART_TYPE_MBC2_BATTERY, MBC2};
@@ -499,7 +501,9 @@ global_checksum: {}
     }
 }
 
-pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<Box<dyn Cartridge>> {
+pub type RefCartridge = Rc<RefCell<Box<dyn Cartridge>>>;
+
+pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<RefCartridge> {
     let rom = Rom::new(rom_path.clone())?;
     let cart_type = rom.get(HEADER_CART_TYPE);
     let cart = match cart_type {
@@ -513,7 +517,7 @@ pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<
     let _ = cart.check_logo()?;
     let _ = cart.check_header()?;
     println!("{}", &cart.info());
-    Ok(cart)
+    Ok(Rc::new(RefCell::new(cart)))
 }
 
 #[cfg(test)]
@@ -526,11 +530,11 @@ mod tests {
         let ram_path = String::from("target/_ram");
         let rtc_path = String::from("target/_rtc");
         let cart = power_up(rom_path, ram_path, rtc_path).unwrap();
-        let title_text = cart.title_text().unwrap();
+        let title_text = cart.borrow().title_text().unwrap();
         println!(" rom title_text => {}", title_text);
         assert_eq!(title_text, String::from("BOXES"));
-        println!(" rom manufacturer_code => {:02X?}", cart.manufacturer_code());
-        let info = cart.info();
+        println!(" rom manufacturer_code => {:02X?}", cart.borrow().manufacturer_code());
+        let info = cart.borrow().info();
         println!("{}", info);
     }
 }
