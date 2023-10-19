@@ -4,7 +4,6 @@ use std::rc::Rc;
 use crate::gpu::GPU;
 use crate::interrupt::IER;
 use crate::io::IO;
-use crate::mmu::cartridge::{Cartridge, CartType};
 use crate::mmu::prohibited_mem::ProhibitedMem;
 use crate::mmu::work_ram::WorkRam;
 
@@ -55,6 +54,8 @@ pub trait Memory {
     }
 }
 
+pub type Cartridge = Rc<RefCell<Box<dyn crate::cartridge::Cartridge>>>;
+
 pub struct MMU {
     cart: Cartridge,
     gpu: GPU,
@@ -65,9 +66,9 @@ pub struct MMU {
 }
 
 impl MMU {
-    pub fn new(cart: CartType) -> Rc<RefCell<Box<dyn Memory>>> {
+    pub fn new(cart: Cartridge) -> Rc<RefCell<Box<dyn Memory>>> {
         Rc::new(RefCell::new(Box::new(MMU {
-            cart: Cartridge::new(cart),
+            cart: cart,
             gpu: GPU::new(),
             wram: WorkRam::new(),
             prohibited: ProhibitedMem::new(),
@@ -82,37 +83,35 @@ pub const MMU_ADDR_IFR: u16 = 0xFF0F;
 
 impl Memory for MMU {
     fn get(&self, addr: u16) -> u8 {
-        let memory: &dyn Memory = match addr {
-            0x0000..=0x7FFF => &self.cart,
-            0x8000..=0x9FFF => &self.gpu,
-            0xA000..=0xBFFF => &self.cart,
-            0xC000..=0xDFFF => &self.wram,
-            0xE000..=0xFDFF => &self.prohibited,
-            0xFE00..=0xFE9F => &self.gpu,
-            0xFEA0..=0xFEFF => &self.prohibited,
-            0xFF00..=0xFF7F => &self.io,
-            0xFF80..=0xFFFE => &self.wram,
-            MMU_ADDR_IER => &self.ier,
+        match addr {
+            0x0000..=0x7FFF => self.cart.borrow().get(addr),
+            0x8000..=0x9FFF => self.gpu.get(addr),
+            0xA000..=0xBFFF => self.cart.borrow().get(addr),
+            0xC000..=0xDFFF => self.wram.get(addr),
+            0xE000..=0xFDFF => self.prohibited.get(addr),
+            0xFE00..=0xFE9F => self.gpu.get(addr),
+            0xFEA0..=0xFEFF => self.prohibited.get(addr),
+            0xFF00..=0xFF7F => self.io.get(addr),
+            0xFF80..=0xFFFE => self.wram.get(addr),
+            MMU_ADDR_IER => self.ier.get(addr),
             addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
-        };
-        memory.get(addr)
+        }
     }
 
-    fn set(&mut self, i: u16, v: u8) {
-        let memory: &mut dyn Memory = match i {
-            0x0000..=0x7FFF => &mut self.cart,
-            0x8000..=0x9FFF => &mut self.gpu,
-            0xA000..=0xBFFF => &mut self.cart,
-            0xC000..=0xDFFF => &mut self.wram,
-            0xE000..=0xFDFF => &mut self.prohibited,
-            0xFE00..=0xFE9F => &mut self.gpu,
-            0xFEA0..=0xFEFF => &mut self.prohibited,
-            0xFF00..=0xFF7F => &mut self.io,
-            0xFF80..=0xFFFE => &mut self.wram,
-            0xFFFF..=0xFFFF => &mut self.ier,
+    fn set(&mut self, addr: u16, v: u8) {
+        match addr {
+            0x0000..=0x7FFF => self.cart.borrow_mut().set(addr, v),
+            0x8000..=0x9FFF => self.gpu.set(addr, v),
+            0xA000..=0xBFFF => self.cart.borrow_mut().set(addr, v),
+            0xC000..=0xDFFF => self.wram.set(addr, v),
+            0xE000..=0xFDFF => self.prohibited.set(addr, v),
+            0xFE00..=0xFE9F => self.gpu.set(addr, v),
+            0xFEA0..=0xFEFF => self.prohibited.set(addr, v),
+            0xFF00..=0xFF7F => self.io.set(addr, v),
+            0xFF80..=0xFFFE => self.wram.set(addr, v),
+            0xFFFF..=0xFFFF => self.ier.set(addr, v),
             addr => panic!("MMU access denied, addr: 0x{:04X}", addr),
         };
-        memory.set(i, v)
     }
 }
 
