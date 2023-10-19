@@ -1,10 +1,11 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::{GBTerm, interrupt, mmu};
+use crate::{GBTerm, mmu};
 use crate::cpu::{CPU, CPUInfo, MemType};
 use crate::cpu::lr35902::clock::Clock;
 use crate::cpu::lr35902::registers::{Register, Registers};
+use crate::io_device::interrupt;
 use crate::mmu::Memory;
 
 mod registers;

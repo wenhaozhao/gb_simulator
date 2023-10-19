@@ -2,10 +2,10 @@ use std::fmt::Formatter;
 use std::fs::File;
 use std::io::{Read, Write};
 
-use crate::cartridge::mbc::mbc1::{CART_TYPE_MBC1, CART_TYPE_MBC1_RAM, CART_TYPE_MBC1_RAM_BATTERY, MBC1};
-use crate::cartridge::mbc::mbc2::{CART_TYPE_MBC2, CART_TYPE_MBC2_BATTERY, MBC2};
-use crate::cartridge::mbc::mbc3::{CART_TYPE_MBC3, CART_TYPE_MBC3_RAM_2, CART_TYPE_MBC3_RAM_BATTERY_2, CART_TYPE_MBC3_TIMER_BATTERY, CART_TYPE_MBC3_TIMER_RAM_BATTERY_2, MBC3};
-use crate::cartridge::mbc::mbc5::{CART_TYPE_MBC5, CART_TYPE_MBC5_RAM, CART_TYPE_MBC5_RAM_BATTERY, CART_TYPE_MBC5_RUMBLE, CART_TYPE_MBC5_RUMBLE_RAM, CART_TYPE_MBC5_RUMBLE_RAM_BATTERY, MBC5};
+use crate::io_device::cartridge::mbc::mbc1::{CART_TYPE_MBC1, CART_TYPE_MBC1_RAM, CART_TYPE_MBC1_RAM_BATTERY, MBC1};
+use crate::io_device::cartridge::mbc::mbc2::{CART_TYPE_MBC2, CART_TYPE_MBC2_BATTERY, MBC2};
+use crate::io_device::cartridge::mbc::mbc3::{CART_TYPE_MBC3, CART_TYPE_MBC3_RAM_2, CART_TYPE_MBC3_RAM_BATTERY_2, CART_TYPE_MBC3_TIMER_BATTERY, CART_TYPE_MBC3_TIMER_RAM_BATTERY_2, MBC3};
+use crate::io_device::cartridge::mbc::mbc5::{CART_TYPE_MBC5, CART_TYPE_MBC5_RAM, CART_TYPE_MBC5_RAM_BATTERY, CART_TYPE_MBC5_RUMBLE, CART_TYPE_MBC5_RUMBLE_RAM, CART_TYPE_MBC5_RUMBLE_RAM_BATTERY, MBC5};
 use crate::mmu::Memory;
 use crate::Result;
 
@@ -518,7 +518,7 @@ pub fn power_up(rom_path: String, ram_path: String, rtc_path: String) -> Result<
 
 #[cfg(test)]
 mod tests {
-    use crate::cartridge::power_up;
+    use crate::io_device::cartridge::power_up;
 
     #[test]
     fn test_power_up() {

@@ -1,7 +1,7 @@
 use std::time::SystemTime;
 
-use crate::cartridge::{Cartridge, Ram, Rom};
-use crate::cartridge::mbc::{MBC, RAM_BANK_LEN, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_LEN, ROM_X_BASE, ROM_X_END};
+use crate::io_device::cartridge::{Cartridge, Ram, Rom};
+use crate::io_device::cartridge::mbc::{MBC, RAM_BANK_LEN, RAM_X_BASE, RAM_X_END, ROM_0_BASE, ROM_0_END, ROM_BANK_LEN, ROM_X_BASE, ROM_X_END};
 use crate::mmu::Memory;
 use crate::Result;
 

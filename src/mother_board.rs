@@ -1,8 +1,9 @@
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
-use crate::{cartridge, cpu, GBTerm};
+use crate::{cpu, GBTerm};
 use crate::cpu::CPU;
+use crate::io_device::cartridge;
 use crate::mmu::{Memory, MMU};
 
 pub struct MotherBoard {

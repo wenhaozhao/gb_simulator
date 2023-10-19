@@ -1,23 +1,41 @@
-use crate::interrupt::IFR;
+use crate::io_device::interrupt::IFR;
 use crate::mmu::Memory;
+
+pub mod joypad;
+pub mod serial;
+pub mod divider;
+pub mod interrupt;
+pub mod video;
+pub mod infrared;
+pub mod wram;
+pub mod cartridge;
+
+
+
+/// ## [VBK](https://gbdev.io/pandocs/CGB_Registers.html#ff4f--vbk-cgb-mode-only-vram-bank)
+/// - $FF4F	VBK	VRAM bank	R/W	CGB
+pub const IO_ADDR_VBK: u16 = 0xFF4F;
+/// ## [SVBK](https://gbdev.io/pandocs/CGB_Registers.html#ff70--svbk-cgb-mode-only-wram-bank)
+/// - $FF70 SVBK	WRAM bank	R/W	CGB
+pub const IO_ADDR_SVBK: u16 = 0xFF70;
 
 /// ## IO
 /// - FF00	FF7F	[I/O Registers](https://gbdev.io/pandocs/Memory_Map.html#io-ranges)
-pub struct IO {
+pub struct IOBus {
     ifr: IFR,
     buf: [u8; 0x0080],
 }
 
-impl IO {
+impl IOBus {
     pub fn new() -> Self {
-        IO { ifr: IFR::new(), buf: [0u8; 0x0080] }
+        IOBus { ifr: IFR::new(), buf: [0u8; 0x0080] }
     }
 }
 
 const OFFSET: usize = 0xFF00;
 
 //todo 这是假的实现
-impl Memory for IO {
+impl Memory for IOBus {
     fn get(&self, i: u16) -> u8 {
         match i {
             0xFF00..=0xFF0E => self.buf[i as usize - OFFSET],

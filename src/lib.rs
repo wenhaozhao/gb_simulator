@@ -1,13 +1,11 @@
-pub mod cartridge;
-pub mod mmu;
-pub mod cpu;
+mod cpu;
 
 #[cfg(test)]
 mod tests;
-mod io;
 mod gpu;
-mod interrupt;
 mod mother_board;
+mod mmu;
+mod io_device;
 
 /// game frame frequency 60FPS
 /// 16ms/frame
